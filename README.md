@@ -1,5 +1,7 @@
 # SageMaker Marketplace Onboarding — a Claude Code Skill
 
+[![skills.sh](https://skills.sh/b/aws-samples/sample-sagemaker-marketplace-onboarding-skill)](https://skills.sh/aws-samples/sample-sagemaker-marketplace-onboarding-skill)
+
 An interactive [Claude Code](https://docs.claude.com/en/docs/claude-code) skill that walks model providers through building an inference container that complies with the **Amazon SageMaker Marketplace** container contract — and, optionally, through publishing a Marketplace listing.
 
 You describe your model; Claude guides you phase by phase — inventorying an existing project or scaffolding a new one, enforcing the `/ping` and `/invocations` contract, packaging model weights, running a local validation gate, and pushing to ECR. It is 100% guidance and templates: **no code runs on your behalf, and it never edits your existing project files.**
