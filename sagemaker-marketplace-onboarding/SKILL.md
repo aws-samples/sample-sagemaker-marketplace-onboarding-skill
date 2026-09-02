@@ -5,8 +5,6 @@ description: "Interactive walkthrough that onboards a model provider onto SageMa
 
 # SageMaker Marketplace — Container Builder (Interactive Walkthrough)
 
-> **Non-production disclaimer.** The templates this skill scaffolds (`app.py`, `Dockerfile`, `model_loader.py`, `inference.py`, `metering.py`, `websocket_handler.py`, and the rest of `templates/`) are provided for demonstration and as a starting point only. They are **not intended for production or Marketplace submission as-is** and have not undergone security review. Before deploying or submitting a listing, the seller is responsible for their own security review and testing — including input validation, authentication/authorization where applicable, dependency pinning and vulnerability scanning, and any controls their use case and compliance obligations require.
-
 You are guiding a model provider (the seller) through the process of making their model container compatible with the AWS SageMaker Marketplace container contract. The provider may already have a project or may be starting from scratch, and they may want to stop at the container or continue on to publish a Marketplace listing. Adapt accordingly.
 
 The container contract you are enforcing supports four sync invocation modes with **one identical `/invocations` implementation**: Real-Time (`InvokeEndpoint`), Streaming response (`InvokeEndpointWithResponseStream`), Async Inference (`InvokeEndpointAsync`), and Batch Transform. The container code is mode-agnostic — SageMaker handles routing. Bidirectional WebSocket streaming and per-inference metering are **opt-in** — only generate them if the user says they need them.
@@ -206,6 +204,11 @@ Walk the user through each endpoint's contract. For each one, show the relevant 
 - Max connection duration: 30 minutes. Client must reconnect for longer sessions. Design the container stateless per-connection.
 - Errors: send Text frame with `{"ModelStreamError": {"ErrorCode": "...", "Message": "..."}}` or a Close frame.
 - **If per-inference billing on WebSocket**: metering goes on a **companion metadata WebSocket** at `/invocations-bidirectional-stream-metadata`, not on the main data stream. Signal support with `X-Amzn-SageMaker-Metadata-Stream-Supported: true` in the upgrade response. See `websocket_handler.py` and `reference/websocket.md`.
+- **If modality is STT/TTS**: if the user wants this container easily consumable from a voice-orchestration framework like Pipecat, mention the control-message-vocabulary pattern (Speak/Flush/Clear/KeepAlive/Finalize) in `reference/pipecat-integration.md` while designing the container's WebSocket protocol — cheaper to build in now than retrofit later. Do not implement it unasked; just flag that the option exists at this point in the walkthrough.
+
+**Optional: mirroring metering into your own CloudWatch (EMF)** (only if per-inference billing was selected in Phase 2)
+- The `X-Amzn-Inference-Metering` header / metadata-channel frame is what actually gets the seller paid — nothing else is required for billing to work. Separately, mention that `reference/observability.md` documents an **optional** pattern (CloudWatch Embedded Metric Format) for mirroring the same `ConsumedUnits` value into the seller's own CloudWatch, as a self-serve way to reconcile the Marketplace bill against actual traffic without needing buyer-side CloudWatch access.
+- This is a nice-to-have, not a spec requirement. Ask before adding anything: if the user wants it, add the `emit_emf_metric()` call (from `reference/observability.md`) to their `metering.py`, generated at that point for their specific file — do not scaffold it into `templates/metering.py` by default. If they don't want it, don't mention it again.
 
 **Model loading — `model_loader.py`**
 - Weights at `/opt/ml/model/` (read-only), read via `SM_MODEL_DIR` env var.
@@ -351,6 +354,45 @@ The walkthrough ends here.
 
 ---
 
+## Phase 12 — Operating a live listing (optional, only if asked)
+
+Only relevant after Phase 11 is complete and the listing is published. Do not raise this unprompted — surface it if the user asks about monitoring a live endpoint, reconciling Marketplace billing, or giving customer support teams account access.
+
+**Observability.** SageMaker publishes request/latency/error metrics and instance resource metrics to CloudWatch automatically — no container code needed for those. For streaming/WebSocket models, point the user at `ConcurrentRequestsPerModel` (10s-resolution, includes queued requests — the real load signal for long-lived connections) and `FirstChunkLatency`, not `InvocationsPerInstance`. For GPU capacity planning, SageMaker's detailed observability (on by default) exposes per-GPU Prometheus metrics via PromQL with zero container changes. If the seller wants their own business/billing metrics in CloudWatch (e.g. to reconcile Marketplace metered billing against actual traffic), recommend CloudWatch Embedded Metric Format (EMF) — a stdout JSON line CloudWatch auto-extracts into a real metric, no outbound call, works under network isolation. See `reference/observability.md` for the full metric catalog and an EMF emission snippet that mirrors the existing `metering.py` `ConsumedUnits` value.
+
+**Customer support access.** If the seller asks how to support a buyer's endpoint without a standing cross-account IAM role, point them at AWS IAM Temporary Delegation — buyer-approved, time-limited (≤12h) STS credentials, CloudTrail-logged, no wildcards. This requires separate AWS Partner qualification to initiate requests; it is account/product-level enablement, not something this skill's container or `CreateModelPackage` call sets up. See `reference/iam-temporary-delegation.md`.
+
+Both of these are pointers, not implementation phases — this skill does not build the CloudWatch dashboards, alarms, or delegation integration for the user.
+
+---
+
+## Phase 13 — Pipecat ecosystem hand-off (optional, only if applicable)
+
+**Trigger condition** — independent of Phase 0's `goal` flag (relevant whether or not the user is listing on Marketplace): modality is STT or TTS, Bidirectional WebSocket was implemented (Phase 2), and Phase 8's local testing gate has passed. If any of those don't hold, skip this phase silently — don't mention it.
+
+If the trigger condition holds, ask once whether the user wants help getting the model consumable from [Pipecat](https://github.com/pipecat-ai/pipecat), an open-source voice-agent orchestration framework with first-class support for SageMaker bidirectional-streaming endpoints. Use AskUserQuestion, not free text, with these options:
+
+- **Skip** — no Pipecat work. Default if the user hasn't heard of Pipecat or doesn't have a voice-agent use case in mind.
+- **Community-maintained integration** — the user hosts and maintains the integration in their own separate repository; Pipecat lists it for discoverability. Lower barrier, the realistic default for most providers.
+- **Contribute to Pipecat core** — a PR into `pipecat-ai/pipecat` itself, only appropriate if the model is broadly relevant enough that Pipecat's maintainers would want to own and maintain it. Flag this as the Pipecat maintainers' call, not something to promise will be accepted.
+
+Read `reference/pipecat-integration.md` before proceeding — it has the full architecture explanation, the control-message-vocabulary table, both paths' concrete requirements, and an illustrative (not scaffolded) service-wrapper code appendix.
+
+If **Community-maintained integration**:
+1. Confirm with the user: which GitHub account/org will host the repo, what license (BSD-2 like Pipecat, or another permissive OSS license), and whether they want **company attribution** in the README (Pipecat's own guide recommends this when the provider works for the company behind the model — it builds confidence the integration will be maintained). Do not default or assume any of these — ask explicitly, the same way Phase 0 asks rather than assumes the user's goal.
+2. Walk through the requirements checklist from `reference/pipecat-integration.md`'s "Path A" section: source implementation (subclass `STTService`/`TTSService`, using the illustrative appendix as a starting point adapted to the container's own WebSocket control-message vocabulary from Phase 5/6 — not copy-pasted verbatim), a foundational single-file usage example, README (intro, install, usage, tested Pipecat version, attribution per step 1), LICENSE, docstrings, changelog.
+3. Mention the separate docs-site submission (`pipecat-ai/docs`, Supported Services page + a dedicated service page with a demo video) as a follow-up step once the integration repo itself is working — don't try to do both in one pass.
+4. Do not scaffold a `templates/pipecat_service_stub.py` file automatically. The service wrapper needs to be adapted to whatever control-message vocabulary this specific container's WebSocket protocol implements (see Phase 5's note) — there is no generic version that would be more than the illustrative appendix already provides. Help the user adapt the appendix's code to their container's actual protocol, in their own repository.
+
+If **Contribute to Pipecat core**:
+1. Confirm the user understands this is a judgment call for Pipecat's maintainers, not guaranteed acceptance.
+2. Walk through the mechanics from `reference/pipecat-integration.md`'s "Path B" section: fork `pipecat-ai/pipecat`, branch, implement the service wrapper under `src/pipecat/services/<provider>/sagemaker/` following the real `deepgram/sagemaker/{stt,tts}.py` files as structural reference, add a changelog fragment (`changelog/<PR_number>.added.md`), commit, push to fork, open the PR against `main` with a clear description.
+3. Same caution as above on not auto-generating the service wrapper — help adapt the illustrative appendix, in the user's fork, to their container's real protocol.
+
+This phase never writes to the user's model container project — any files it produces belong in a separate Pipecat-integration repository or fork, matching this skill's existing rule of never editing the user's own project outside the scaffolded sibling directory.
+
+---
+
 ## Reference material (in this skill's directory)
 
 Read these when you need to quote a specific constraint:
@@ -363,6 +405,9 @@ Read these when you need to quote a specific constraint:
 - `reference/billing.md` — hourly vs per-inference, dimensions, freeze rule
 - `reference/logging.md` — CloudWatch log groups, structured JSON logging, key events to log, multi-process pitfalls
 - `reference/marketplace-listing.md` — CreateModelPackage API skeleton + validation job (Phase 11 only)
+- `reference/observability.md` — CloudWatch metrics catalog (invocation/instance/detailed-observability) + EMF business-metric emission (Phase 12 only)
+- `reference/iam-temporary-delegation.md` — buyer-approved temporary support access for a live listing (Phase 12 only)
+- `reference/pipecat-integration.md` — Pipecat voice-agent orchestration architecture, control-message-vocabulary design guidance, and both ecosystem contribution paths (Phase 5 pointer + Phase 13 only)
 
 ## Interaction style
 

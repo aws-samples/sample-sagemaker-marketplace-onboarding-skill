@@ -67,12 +67,7 @@
 
 # Use a CUDA runtime image matching the target instance's CUDA version.
 # For g5/g6 (Ampere/Ada) — 12.1 is a safe default. Adjust for other families.
-#
-# Pulled from the ECR Public Gallery (NVIDIA's official mirror) rather than
-# Docker Hub — same image and tag, but avoids Docker Hub rate limits and keeps
-# the base on an AWS-hosted registry. The Docker Hub equivalent is
-# `nvidia/cuda:12.1.0-runtime-ubuntu22.04` if you prefer that source.
-FROM public.ecr.aws/nvidia/cuda:12.1.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
 # --- (Only if you also implement the WebSocket endpoint /invocations-bidirectional-stream) ---
 # LABEL com.amazonaws.sagemaker.capabilities.bidirectional-streaming=true
