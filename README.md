@@ -26,7 +26,7 @@ You describe your model; Claude guides you phase by phase — inventorying an ex
 
 ## Install
 
-The skill lives in the [`sagemaker-marketplace-onboarding/`](sagemaker-marketplace-onboarding/) directory of this repo.
+This repo *is* the skill — `SKILL.md`, `reference/`, and `templates/` live at the repo root.
 
 **Option A — from a release archive (recommended)**
 
@@ -43,9 +43,15 @@ unzip sagemaker-marketplace-onboarding.skill -d .claude/skills/
 **Option B — from source**
 
 ```bash
-git clone https://github.com/<owner>/sagemaker-marketplace-onboarding-claude-skill.git
-mkdir -p ~/.claude/skills
-cp -r sagemaker-marketplace-onboarding-claude-skill/sagemaker-marketplace-onboarding ~/.claude/skills/
+git clone https://github.com/aws-samples/sample-sagemaker-marketplace-onboarding-skill.git
+mkdir -p ~/.claude/skills/sagemaker-marketplace-onboarding
+cp -r sample-sagemaker-marketplace-onboarding-skill/{SKILL.md,reference,templates} ~/.claude/skills/sagemaker-marketplace-onboarding/
+```
+
+**Option C — via the [skills CLI](https://github.com/vercel-labs/skills)**
+
+```bash
+npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill
 ```
 
 Restart Claude Code (or start a fresh session) so it picks up the new skill.
@@ -76,30 +82,31 @@ Modality- and mode-specific questions are gated: an LLM provider never sees text
 ## Repository layout
 
 ```
-sagemaker-marketplace-onboarding/       ← the installable skill
-├── SKILL.md                            ← the walkthrough Claude follows, phase by phase
-├── templates/                          ← code files scaffolded into your project
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── app.py                          ← FastAPI server: /ping, /invocations, /execution-parameters
-│   ├── model_loader.py
-│   ├── inference.py                    ← smoke_check + predict + predict_stream + zip_outputs
-│   ├── metering.py                     ← per-inference billing headers (opt-in)
-│   ├── websocket_handler.py            ← bidirectional streaming (opt-in)
-│   ├── supervisord.conf                ← multi-process container config (opt-in)
-│   ├── package_model.sh                ← builds model.tar and uploads to S3
-│   ├── PRE_SUBMISSION_CHECKLIST.md
-│   └── test/                           ← test_input.json, test_local.sh, test_streaming.py, test_websocket.py
-└── reference/                          ← docs Claude reads to cite constraints (not scaffolded)
-    ├── contract.md                     ← endpoint/header/timing cheat sheet
-    ├── timing.md                       ← hard timing limits
-    ├── checklist.md                    ← full pre-submission checklist
-    ├── gap-checks.md                   ← gap-analysis list for existing projects
-    ├── websocket.md                    ← bidirectional streaming + client SDK notes
-    ├── billing.md                      ← hourly vs. per-inference metering
-    ├── logging.md                      ← CloudWatch logging patterns
-    └── marketplace-listing.md          ← CreateModelPackage skeleton for the also-list path
+SKILL.md                              ← the walkthrough Claude follows, phase by phase
+templates/                            ← code files scaffolded into your project
+├── Dockerfile
+├── requirements.txt
+├── app.py                            ← FastAPI server: /ping, /invocations, /execution-parameters
+├── model_loader.py
+├── inference.py                      ← smoke_check + predict + predict_stream + zip_outputs
+├── metering.py                       ← per-inference billing headers (opt-in)
+├── websocket_handler.py              ← bidirectional streaming (opt-in)
+├── supervisord.conf                  ← multi-process container config (opt-in)
+├── package_model.sh                  ← builds model.tar and uploads to S3
+├── PRE_SUBMISSION_CHECKLIST.md
+└── test/                             ← test_input.json, test_local.sh, test_streaming.py, test_websocket.py
+reference/                             ← docs Claude reads to cite constraints (not scaffolded)
+├── contract.md                       ← endpoint/header/timing cheat sheet
+├── timing.md                         ← hard timing limits
+├── checklist.md                      ← full pre-submission checklist
+├── gap-checks.md                     ← gap-analysis list for existing projects
+├── websocket.md                      ← bidirectional streaming + client SDK notes
+├── billing.md                        ← hourly vs. per-inference metering
+├── logging.md                        ← CloudWatch logging patterns
+└── marketplace-listing.md            ← CreateModelPackage skeleton for the also-list path
 ```
+
+`sagemaker-marketplace-onboarding.skill` — a prebuilt zip of the above three (wrapped in a `sagemaker-marketplace-onboarding/` folder, the name Claude Code expects under `.claude/skills/`), attached to each [release](../../releases).
 
 - **`templates/`** — files copied into your project. Changing one changes what you ship.
 - **`reference/`** — docs Claude reads to answer questions and cite constraints, without touching your code.
