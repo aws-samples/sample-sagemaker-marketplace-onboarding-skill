@@ -83,8 +83,10 @@ Your agent asks two framing questions up front — container-only vs. also-list,
 | 3–4 | Gap report and/or scaffold from templates |
 | 5–10 | Contract, Dockerfile, weights packaging, local testing, ECR push, pre-submission checklist |
 | 11 | *(also-list only)* `CreateModelPackage` + validation job + AWS docs hand-off |
+| 12 | *(optional, ask-only)* Operating a live listing — observability + IAM temporary delegation pointers |
+| 13 | *(optional, ask-only)* Pipecat voice-agent ecosystem hand-off for STT/TTS WebSocket models |
 
-Modality- and mode-specific questions are gated: an LLM provider never sees text-to-speech questions, and a container-only user never sees listing steps.
+Modality- and mode-specific questions are gated: an LLM provider never sees text-to-speech questions, and a container-only user never sees listing steps. Phases 12 and 13 never trigger unprompted — they're pointers surfaced only if the user asks, or (for 13) if the modality/WebSocket/testing preconditions are already met.
 
 ## Repository layout
 
@@ -111,7 +113,10 @@ sagemaker-marketplace-onboarding/        ← the installable skill
     ├── websocket.md                     ← bidirectional streaming + client SDK notes
     ├── billing.md                       ← hourly vs. per-inference metering
     ├── logging.md                       ← CloudWatch logging patterns
-    └── marketplace-listing.md           ← CreateModelPackage skeleton for the also-list path
+    ├── marketplace-listing.md           ← CreateModelPackage skeleton for the also-list path
+    ├── observability.md                 ← CloudWatch metrics catalog + EMF business-metric emission (Phase 12)
+    ├── iam-temporary-delegation.md      ← buyer-approved temporary support access for a live listing (Phase 12)
+    └── pipecat-integration.md           ← Pipecat voice-agent orchestration hand-off (Phase 13)
 ```
 
 `.claude-plugin/` — `plugin.json` + `marketplace.json`, so Claude Code's native `/plugin marketplace add` and the `npx skills` CLI both find the skill directly, without a directory scan.
