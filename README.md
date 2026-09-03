@@ -1,12 +1,12 @@
 # SageMaker Marketplace Onboarding — an Agent Skill for Claude Code, Amazon Quick, Kiro, and Codex
 
-[![Agent Skill](https://img.shields.io/badge/Agent_Skill-agentskills.io-2EA043?style=flat)](https://agentskills.io)
-[![License](https://img.shields.io/github/license/aws-samples/sample-sagemaker-marketplace-onboarding-skill?style=flat)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/aws-samples/sample-sagemaker-marketplace-onboarding-skill?include_prereleases&style=flat)](../../releases)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-%E2%9C%93-6E56CF?style=flat)](https://docs.claude.com/en/docs/claude-code)
-[![Kiro](https://img.shields.io/badge/Kiro-%E2%9C%93-1E90FF?style=flat)](https://kiro.dev/docs/skills/)
-[![Codex](https://img.shields.io/badge/Codex-%E2%9C%93-000000?style=flat)](https://developers.openai.com/codex/skills)
-[![Amazon Quick](https://img.shields.io/badge/Amazon_Quick-%E2%9C%93-FF9900?style=flat)](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html)
+[![Agent Skill](https://img.shields.io/badge/Agent_Skill-agentskills.io-2EA043?style=for-the-badge)](https://agentskills.io)
+[![License](https://img.shields.io/github/license/aws-samples/sample-sagemaker-marketplace-onboarding-skill?style=for-the-badge)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/aws-samples/sample-sagemaker-marketplace-onboarding-skill?include_prereleases&style=for-the-badge)](../../releases)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-%E2%9C%93-6E56CF?style=for-the-badge&logo=claude&logoColor=white)](https://docs.claude.com/en/docs/claude-code)
+[![Kiro](https://img.shields.io/badge/Kiro-%E2%9C%93-1E90FF?style=for-the-badge)](https://kiro.dev/docs/skills/)
+[![Codex](https://img.shields.io/badge/Codex-%E2%9C%93-000000?style=for-the-badge)](https://developers.openai.com/codex/skills)
+[![Amazon Quick](https://img.shields.io/badge/Amazon_Quick-%E2%9C%93-FF9900?style=for-the-badge)](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html)
 
 An interactive [Agent Skill](https://agentskills.io) that walks model providers through building an inference container that complies with the **Amazon SageMaker Marketplace** container contract — and, optionally, through publishing a Marketplace listing. Works with [Claude Code](https://docs.claude.com/en/docs/claude-code), [Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html), [Kiro](https://kiro.dev/docs/skills/), [Codex](https://developers.openai.com/codex/skills), and any other tool that supports the standard `SKILL.md` format.
 
