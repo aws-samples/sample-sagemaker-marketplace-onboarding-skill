@@ -1,8 +1,10 @@
-# SageMaker Marketplace Onboarding — a Claude Code Skill
+# SageMaker Marketplace Onboarding — an Agent Skill for Claude Code, Amazon Quick, Kiro, and Codex
 
-An interactive [Claude Code](https://docs.claude.com/en/docs/claude-code) skill that walks model providers through building an inference container that complies with the **Amazon SageMaker Marketplace** container contract — and, optionally, through publishing a Marketplace listing.
+[![skills.sh](https://skills.sh/b/aws-samples/sample-sagemaker-marketplace-onboarding-skill)](https://skills.sh/aws-samples/sample-sagemaker-marketplace-onboarding-skill)
 
-You describe your model; Claude guides you phase by phase — inventorying an existing project or scaffolding a new one, enforcing the `/ping` and `/invocations` contract, packaging model weights, running a local validation gate, and pushing to ECR. It is 100% guidance and templates: **no code runs on your behalf, and it never edits your existing project files.**
+An interactive [Agent Skill](https://agentskills.io) that walks model providers through building an inference container that complies with the **Amazon SageMaker Marketplace** container contract — and, optionally, through publishing a Marketplace listing. Works with [Claude Code](https://docs.claude.com/en/docs/claude-code), [Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html), [Kiro](https://kiro.dev/docs/skills/), [Codex](https://developers.openai.com/codex/skills), and any other tool that supports the standard `SKILL.md` format.
+
+You describe your model; your agent guides you phase by phase — inventorying an existing project or scaffolding a new one, enforcing the `/ping` and `/invocations` contract, packaging model weights, running a local validation gate, and pushing to ECR. It is 100% guidance and templates: **no code runs on your behalf, and it never edits your existing project files.**
 
 > **Non-production disclaimer.** The templates this skill scaffolds (`app.py`, `Dockerfile`, `model_loader.py`, `inference.py`, `metering.py`, `websocket_handler.py`, and the rest of `templates/`) are provided for demonstration and as a starting point only. They are **not intended for production or Marketplace submission as-is** and have not undergone security review. Before deploying or submitting a listing, you are responsible for your own security review and testing — including input validation, authentication/authorization where applicable, dependency pinning and vulnerability scanning, and any controls your use case and compliance obligations require.
 
@@ -20,46 +22,57 @@ You describe your model; Claude guides you phase by phase — inventorying an ex
 
 ## Requirements
 
-- [Claude Code](https://docs.claude.com/en/docs/claude-code) installed.
+- One of: [Claude Code](https://docs.claude.com/en/docs/claude-code), [Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html), [Kiro](https://kiro.dev/docs/skills/), [Codex](https://developers.openai.com/codex/skills), or another agent that reads the standard `SKILL.md` format.
 - For local container testing: Docker, and the AWS CLI configured if you push to ECR.
 - Python 3.12+ if you use the WebSocket client SDK notes (see `reference/websocket.md`).
 
 ## Install
 
-The skill lives in the [`sagemaker-marketplace-onboarding/`](sagemaker-marketplace-onboarding/) directory of this repo.
+Skill lives in `sagemaker-marketplace-onboarding/`. Repo root has a `.claude-plugin/marketplace.json` manifest so discovery tools find it without scanning.
 
-**Option A — from a release archive (recommended)**
+**Claude Code**
 
-Download the `sagemaker-marketplace-onboarding.skill` file from the [Releases](../../releases) page, then unzip it into your skills directory:
-
-```bash
-# User-global (available in every project)
-unzip sagemaker-marketplace-onboarding.skill -d ~/.claude/skills/
-
-# — or, per-project —
-unzip sagemaker-marketplace-onboarding.skill -d .claude/skills/
+```
+/plugin marketplace add aws-samples/sample-sagemaker-marketplace-onboarding-skill
+/plugin install sagemaker-marketplace-onboarding@sample-sagemaker-marketplace-onboarding-skill
 ```
 
-**Option B — from source**
+Or via the [skills CLI](https://github.com/vercel-labs/skills): `npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a claude-code`
 
-```bash
-git clone https://github.com/<owner>/sagemaker-marketplace-onboarding-claude-skill.git
-mkdir -p ~/.claude/skills
-cp -r sagemaker-marketplace-onboarding-claude-skill/sagemaker-marketplace-onboarding ~/.claude/skills/
+Or manually: download `sagemaker-marketplace-onboarding.skill` from [Releases](../../releases) and `unzip sagemaker-marketplace-onboarding.skill -d ~/.claude/skills/`, or `git clone` + `cp -r sagemaker-marketplace-onboarding ~/.claude/skills/`.
+
+**Kiro CLI**
+
+```
+npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a kiro-cli
 ```
 
-Restart Claude Code (or start a fresh session) so it picks up the new skill.
+**Kiro IDE**
+
+Manual flow, not CLI-based: **Agent Steering & Skills** sidebar > add skill > paste the folder URL: `https://github.com/aws-samples/sample-sagemaker-marketplace-onboarding-skill/tree/main/sagemaker-marketplace-onboarding`
+
+**Codex**
+
+```
+npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a codex
+```
+
+**Amazon Quick**
+
+Desktop app, manual: **Agents & skills** > **Skills** tab > **+ Create** > **Import from file** > select `sagemaker-marketplace-onboarding/SKILL.md`. See [Amazon Quick skills docs](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html).
+
+Restart your agent (or start a fresh session) so it picks up the new skill.
 
 ## Usage
 
-Start a Claude Code session and describe what you want. The skill activates on requests like:
+Start a session with your agent and describe what you want. The skill activates on requests like:
 
 - "Help me build a SageMaker Marketplace container"
 - "Onboard my model to SageMaker Marketplace"
 - "Package my model for SageMaker Marketplace"
 - "Review my container against the SageMaker Marketplace spec"
 
-Claude asks two framing questions up front — container-only vs. also-list, and existing project vs. greenfield — then walks the rest one phase at a time, confirming before it moves on.
+Your agent asks two framing questions up front — container-only vs. also-list, and existing project vs. greenfield — then walks the rest one phase at a time, confirming before it moves on.
 
 ### The walkthrough at a glance
 
@@ -78,36 +91,40 @@ Modality- and mode-specific questions are gated: an LLM provider never sees text
 ## Repository layout
 
 ```
-sagemaker-marketplace-onboarding/       ← the installable skill
-├── SKILL.md                            ← the walkthrough Claude follows, phase by phase
-├── templates/                          ← code files scaffolded into your project
+sagemaker-marketplace-onboarding/        ← the installable skill
+├── SKILL.md                             ← the walkthrough your agent follows, phase by phase
+├── templates/                           ← code files scaffolded into your project
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── app.py                          ← FastAPI server: /ping, /invocations, /execution-parameters
+│   ├── app.py                           ← FastAPI server: /ping, /invocations, /execution-parameters
 │   ├── model_loader.py
-│   ├── inference.py                    ← smoke_check + predict + predict_stream + zip_outputs
-│   ├── metering.py                     ← per-inference billing headers (opt-in)
-│   ├── websocket_handler.py            ← bidirectional streaming (opt-in)
-│   ├── supervisord.conf                ← multi-process container config (opt-in)
-│   ├── package_model.sh                ← builds model.tar and uploads to S3
+│   ├── inference.py                     ← smoke_check + predict + predict_stream + zip_outputs
+│   ├── metering.py                      ← per-inference billing headers (opt-in)
+│   ├── websocket_handler.py             ← bidirectional streaming (opt-in)
+│   ├── supervisord.conf                 ← multi-process container config (opt-in)
+│   ├── package_model.sh                 ← builds model.tar and uploads to S3
 │   ├── PRE_SUBMISSION_CHECKLIST.md
-│   └── test/                           ← test_input.json, test_local.sh, test_streaming.py, test_websocket.py
-└── reference/                          ← docs Claude reads to cite constraints (not scaffolded)
-    ├── contract.md                     ← endpoint/header/timing cheat sheet
-    ├── timing.md                       ← hard timing limits
-    ├── checklist.md                    ← full pre-submission checklist
-    ├── gap-checks.md                   ← gap-analysis list for existing projects
-    ├── websocket.md                    ← bidirectional streaming + client SDK notes
-    ├── billing.md                      ← hourly vs. per-inference metering
-    ├── logging.md                      ← CloudWatch logging patterns
-    ├── marketplace-listing.md          ← CreateModelPackage skeleton for the also-list path
-    ├── observability.md                ← CloudWatch metrics catalog + EMF business-metric emission (Phase 12)
-    ├── iam-temporary-delegation.md     ← buyer-approved temporary support access for a live listing (Phase 12)
-    └── pipecat-integration.md          ← Pipecat voice-agent orchestration hand-off (Phase 13)
+│   └── test/                            ← test_input.json, test_local.sh, test_streaming.py, test_websocket.py
+└── reference/                           ← docs your agent reads to cite constraints (not scaffolded)
+    ├── contract.md                      ← endpoint/header/timing cheat sheet
+    ├── timing.md                        ← hard timing limits
+    ├── checklist.md                     ← full pre-submission checklist
+    ├── gap-checks.md                    ← gap-analysis list for existing projects
+    ├── websocket.md                     ← bidirectional streaming + client SDK notes
+    ├── billing.md                       ← hourly vs. per-inference metering
+    ├── logging.md                       ← CloudWatch logging patterns
+    ├── marketplace-listing.md           ← CreateModelPackage skeleton for the also-list path
+    ├── observability.md                 ← CloudWatch metrics catalog + EMF business-metric emission (Phase 12)
+    ├── iam-temporary-delegation.md      ← buyer-approved temporary support access for a live listing (Phase 12)
+    └── pipecat-integration.md           ← Pipecat voice-agent orchestration hand-off (Phase 13)
 ```
 
+`.claude-plugin/` — `plugin.json` + `marketplace.json`, so Claude Code's native `/plugin marketplace add` and the `npx skills` CLI both find the skill directly, without a directory scan.
+
+`sagemaker-marketplace-onboarding.skill` — a prebuilt zip of the skill folder, attached to each [release](../../releases).
+
 - **`templates/`** — files copied into your project. Changing one changes what you ship.
-- **`reference/`** — docs Claude reads to answer questions and cite constraints, without touching your code.
+- **`reference/`** — docs your agent reads to answer questions and cite constraints, without touching your code.
 
 ## Scope — what this skill does *not* do
 
@@ -122,7 +139,7 @@ By design, the skill:
 
 Contributions are welcome. Found a bug, an outdated constraint, or a gap? [Open an issue](../../issues) or send a [pull request](../../pulls). See [CONTRIBUTING.md](CONTRIBUTING.md) for details. The skill is entirely documentation and templates, so most changes are edits to `SKILL.md`, `reference/*.md`, or `templates/`.
 
-Please test locally before opening a PR: install the skill into your own Claude Code, run the walkthrough end to end, and for template changes do a full scaffold plus `bash test/test_local.sh <image> <weights>`. There is no CI — manual testing is the gate.
+Please test locally before opening a PR: install the skill into your own agent (Claude Code, Amazon Quick, Kiro, or Codex), run the walkthrough end to end, and for template changes do a full scaffold plus `bash test/test_local.sh <image> <weights>`. There is no CI — manual testing is the gate.
 
 A few design principles are load-bearing and shouldn't be changed casually: `/ping` must exercise inference, `ENTRYPOINT` must be exec-form, no weights baked into the image and no runtime network calls, container code stays mode-agnostic, and every walkthrough question uses structured prompts rather than free text.
 

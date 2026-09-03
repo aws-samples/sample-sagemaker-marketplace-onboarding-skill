@@ -1,0 +1,36 @@
+name: Build and attach skill archive
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sagemaker-marketplace-onboarding.skill
+        run: |
+          set -euo pipefail
+          rm -f sagemaker-marketplace-onboarding.skill
+          zip -rX sagemaker-marketplace-onboarding.skill sagemaker-marketplace-onboarding
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            sagemaker-marketplace-onboarding.skill --clobber
+
+      - name: Upload build artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sagemaker-marketplace-onboarding.skill
+          path: sagemaker-marketplace-onboarding.skill
