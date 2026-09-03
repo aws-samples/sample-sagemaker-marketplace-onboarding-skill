@@ -97,8 +97,8 @@ Container reads and applies. No shared state between customers.
 ## Per-inference billing on WebSocket (companion metadata streaming)
 
 GA capability (see AWS ML blog ["Introducing usage-based pricing for Amazon SageMaker bidirectional
-streaming"](https://aws.amazon.com/blogs/machine-learning/introducing-usage-based-pricing-for-amazon-sagemaker-bidirectional-streaming/),
-Deepgram launch partner). This is what makes per-inference billing possible on a long-lived
+streaming"](https://aws.amazon.com/blogs/machine-learning/introducing-usage-based-pricing-for-amazon-sagemaker-bidirectional-streaming/)).
+This is what makes per-inference billing possible on a long-lived
 connection where total usage is not known until the stream ends — SageMaker's header-based metering
 (`X-Amzn-Inference-Metering` on a normal `/invocations` response) only works because a request-response
 call has a bounded end. A bidi session can run 30 seconds or 30 minutes, so metering has to be reported

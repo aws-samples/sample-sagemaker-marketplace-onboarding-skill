@@ -386,7 +386,7 @@ If **Community-maintained integration**:
 
 If **Contribute to Pipecat core**:
 1. Confirm the user understands this is a judgment call for Pipecat's maintainers, not guaranteed acceptance.
-2. Walk through the mechanics from `reference/pipecat-integration.md`'s "Path B" section: fork `pipecat-ai/pipecat`, branch, implement the service wrapper under `src/pipecat/services/<provider>/sagemaker/` following the real `deepgram/sagemaker/{stt,tts}.py` files as structural reference, add a changelog fragment (`changelog/<PR_number>.added.md`), commit, push to fork, open the PR against `main` with a clear description.
+2. Walk through the mechanics from `reference/pipecat-integration.md`'s "Path B" section: fork `pipecat-ai/pipecat`, branch, implement the service wrapper under `src/pipecat/services/<provider>/sagemaker/` following an existing `<provider>/sagemaker/{stt,tts}.py` implementation as structural reference, add a changelog fragment (`changelog/<PR_number>.added.md`), commit, push to fork, open the PR against `main` with a clear description.
 3. Same caution as above on not auto-generating the service wrapper — help adapt the illustrative appendix, in the user's fork, to their container's real protocol.
 
 This phase never writes to the user's model container project — any files it produces belong in a separate Pipecat-integration repository or fork, matching this skill's existing rule of never editing the user's own project outside the scaffolded sibling directory.

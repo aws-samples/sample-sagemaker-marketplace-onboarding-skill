@@ -5,10 +5,11 @@
 mostly informational for the build phase, but directly relevant once a listing is live and buyers ask
 "how do I monitor this."
 
-Source: AWS ML blog ["Deepgram deepens Amazon SageMaker AI observability with Enhanced Metrics"](https://aws.amazon.com/blogs/machine-learning/deepgram-deepens-amazon-sagemaker-ai-observability-with-enhanced-metrics/)
-(2026-08-27) and Deepgram's own SageMaker observability docs
+Source: an [AWS ML blog post on Amazon SageMaker AI observability with Enhanced
+Metrics](https://aws.amazon.com/blogs/machine-learning/deepgram-deepens-amazon-sagemaker-ai-observability-with-enhanced-metrics/)
+(2026-08-27) and a model provider's own public SageMaker observability documentation
 ([Observability for Amazon SageMaker](https://developers.deepgram.com/docs/observability-sagemaker),
-[Deepgram Enhanced Metrics](https://developers.deepgram.com/docs/enhanced-metrics-sagemaker),
+[Enhanced Metrics](https://developers.deepgram.com/docs/enhanced-metrics-sagemaker),
 [Prometheus & OpenTelemetry Metrics](https://developers.deepgram.com/docs/prometheus-otel-sagemaker)),
 which document a reference pattern for exactly this seller use case — surfacing container-internal
 metrics without any outbound network call.

@@ -6,8 +6,8 @@ streaming endpoints — the exact container contract this skill scaffolds in Pha
 
 Source: AWS ML blog ["Deploy voice agents with Pipecat and Amazon SageMaker AI bidirectional
 streaming"](https://d1im9ux8shqxn5.cloudfront.net/blog-ml-21563/) and the real Pipecat source
-(`pipecat-ai/pipecat`, `src/pipecat/services/aws/sagemaker/` and
-`src/pipecat/services/deepgram/sagemaker/`).
+(`pipecat-ai/pipecat`, `src/pipecat/services/aws/sagemaker/` and existing per-provider
+SageMaker service wrappers under `src/pipecat/services/<provider>/sagemaker/`).
 
 This file covers two things: (1) how Pipecat's client-side architecture maps onto the container
 you just built, so you understand what you need to expose for it to be wrappable; and (2) how to
@@ -55,7 +55,8 @@ A subclass of Pipecat's `STTService` or `TTSService` that translates Pipecat's g
 the piece that doesn't exist yet for a new model — everything else (transport, VAD, LLM,
 pipeline wiring) is already generic in Pipecat.
 
-Real example — `DeepgramSageMakerTTSService` (`pipecat/services/deepgram/sagemaker/tts.py`):
+Illustrative example — a SageMaker-backed `TTSService` subclass (structurally similar to
+existing provider integrations under `pipecat/services/<provider>/sagemaker/tts.py`):
 
 ```python
 async def run_tts(self, text: str, context_id: str):
@@ -75,7 +76,7 @@ A background task continuously reads from the BiDi stream, tells JSON control fr
 (`Metadata`, `Flushed`, `Cleared`, `Warning`) apart from raw binary audio bytes by attempting a
 UTF-8/JSON decode first, and routes each to the right handler.
 
-The STT counterpart (`DeepgramSageMakerSTTService`, `pipecat/services/deepgram/sagemaker/stt.py`)
+The STT counterpart (same shape, under `pipecat/services/<provider>/sagemaker/stt.py`)
 follows the same shape: `run_stt(audio)` calls `client.send_audio_chunk(audio)`; a background
 task parses transcription JSON and pushes `TranscriptionFrame`/`InterimTranscriptionFrame`; a
 second background task sends `{"type": "KeepAlive"}` every 5 seconds during silence; and on
@@ -90,14 +91,14 @@ A factory picks your service class at runtime based on config; the rest of the P
 
 Pipecat's service wrapper is only possible because the container implements a **control-message
 vocabulary** on top of the raw `/invocations-bidirectional-stream` contract — not just raw audio
-frames. Deepgram's containers accept JSON text frames like `{"type": "Speak", ...}`,
+frames. Existing SageMaker-backed containers accept JSON text frames like `{"type": "Speak", ...}`,
 `{"type": "Flush"}`, `{"type": "Clear"}`, `{"type": "Close"}`, `{"type": "KeepAlive"}`, and (STT)
 `{"type": "Finalize"}`, interleaved with binary audio frames.
 
 If you want your model to be easily wrappable by Pipecat (or any other voice-orchestration
 framework doing the same job), design your container's WebSocket protocol with equivalents for:
 
-| Need | Deepgram's pattern | Why an orchestrator needs it |
+| Need | Reference pattern | Why an orchestrator needs it |
 |---|---|---|
 | Start synthesis / send input | `{"type": "Speak", "text": "..."}` (TTS) or raw binary audio frames (STT) | The one required message — everything else is optional polish |
 | Force flush of buffered output | `{"type": "Flush"}` | Called when the LLM turn ends so TTS doesn't wait for more text before speaking |
@@ -162,8 +163,8 @@ promise it'll be accepted). Standard OSS contribution flow per `CONTRIBUTING.md`
 1. Fork `pipecat-ai/pipecat`, clone your fork.
 2. Branch: `git checkout -b <feature-branch-name>`.
 3. Implement your service wrapper under `src/pipecat/services/<provider>/sagemaker/` (or
-   `<provider>/` if not SageMaker-specific), following the patterns in Layer 2 above and the real
-   `deepgram/sagemaker/{stt,tts}.py` files as a structural reference.
+   `<provider>/` if not SageMaker-specific), following the patterns in Layer 2 above and existing
+   per-provider `sagemaker/{stt,tts}.py` files as a structural reference.
 4. Add a changelog fragment: `changelog/<PR_number>.added.md` (a Markdown bullet describing the
    addition — PR number isn't known until the PR is opened, so this typically gets added/renamed
    in the same PR).
@@ -187,9 +188,9 @@ scaffolded template, it slots into Phase 4's opt-in tree the same way `websocket
 
 The following is a **structural example**, not code this skill generates or copies anywhere. It
 shows the shape a Pipecat `TTSService`/`STTService` subclass takes when wrapping a SageMaker
-bidi endpoint, adapted from the real `DeepgramSageMakerTTSService`/`STTService` implementations
-in `pipecat-ai/pipecat` (`src/pipecat/services/deepgram/sagemaker/{tts,stt}.py`). Every `TODO`
-marks a point where the real implementation is Deepgram-specific and yours would differ. Read
+bidi endpoint, adapted from existing SageMaker-backed `TTSService`/`STTService` implementations
+in `pipecat-ai/pipecat` (`src/pipecat/services/<provider>/sagemaker/{tts,stt}.py`). Every `TODO`
+marks a point where an existing implementation is provider-specific and yours would differ. Read
 this to *decide* whether the pattern is worth adopting for your model — it is not meant to be
 copy-pasted as-is.
 
