@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "pluginRoot": "."
+  },
+  "plugins": [
+    {
+      "name": "sagemaker-marketplace-onboarding",
+      "source": ".",
+      "skills": ["./sagemaker-marketplace-onboarding"]
+    }
+  ]
+}

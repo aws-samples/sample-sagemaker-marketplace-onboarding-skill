@@ -28,42 +28,38 @@ You describe your model; your agent guides you phase by phase — inventorying a
 
 ## Install
 
-This repo *is* the skill — `SKILL.md`, `reference/`, and `templates/` live at the repo root.
+Skill lives in `sagemaker-marketplace-onboarding/`. Repo root has a `.claude-plugin/marketplace.json` manifest so discovery tools find it without scanning.
 
-**Option A — from a release archive (recommended)**
+**Claude Code**
 
-Download the `sagemaker-marketplace-onboarding.skill` file from the [Releases](../../releases) page, then unzip it into your skills directory:
-
-```bash
-# User-global (available in every project)
-unzip sagemaker-marketplace-onboarding.skill -d ~/.claude/skills/
-
-# — or, per-project —
-unzip sagemaker-marketplace-onboarding.skill -d .claude/skills/
+```
+/plugin marketplace add aws-samples/sample-sagemaker-marketplace-onboarding-skill
+/plugin install sagemaker-marketplace-onboarding@sample-sagemaker-marketplace-onboarding-skill
 ```
 
-**Option B — from source**
+Or via the [skills CLI](https://github.com/vercel-labs/skills): `npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a claude-code`
 
-```bash
-git clone https://github.com/aws-samples/sample-sagemaker-marketplace-onboarding-skill.git
-mkdir -p ~/.claude/skills/sagemaker-marketplace-onboarding
-cp -r sample-sagemaker-marketplace-onboarding-skill/{SKILL.md,reference,templates} ~/.claude/skills/sagemaker-marketplace-onboarding/
+Or manually: download `sagemaker-marketplace-onboarding.skill` from [Releases](../../releases) and `unzip sagemaker-marketplace-onboarding.skill -d ~/.claude/skills/`, or `git clone` + `cp -r sagemaker-marketplace-onboarding ~/.claude/skills/`.
+
+**Kiro CLI**
+
 ```
-
-**Option C — via the [skills CLI](https://github.com/vercel-labs/skills)** (auto-detects Claude Code, Kiro, and Codex; installs to each one's own skills directory)
-
-```bash
-npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill
-
-# Or target a specific agent:
-npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a claude-code
 npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a kiro-cli
+```
+
+**Kiro IDE**
+
+Manual flow, not CLI-based: **Agent Steering & Skills** sidebar > add skill > paste the folder URL: `https://github.com/aws-samples/sample-sagemaker-marketplace-onboarding-skill/tree/main/sagemaker-marketplace-onboarding`
+
+**Codex**
+
+```
 npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a codex
 ```
 
-**Option D — Amazon Quick**
+**Amazon Quick**
 
-Amazon Quick's desktop app imports skills from a single `SKILL.md` file rather than a repo URL: open **Agents & skills** > **Skills** tab > **+ Create** > **Import from file**, and select this repo's `SKILL.md`. See [Skills and agents in Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html) for details.
+Desktop app, manual: **Agents & skills** > **Skills** tab > **+ Create** > **Import from file** > select `sagemaker-marketplace-onboarding/SKILL.md`. See [Amazon Quick skills docs](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html).
 
 Restart your agent (or start a fresh session) so it picks up the new skill.
 
@@ -93,34 +89,37 @@ Modality- and mode-specific questions are gated: an LLM provider never sees text
 ## Repository layout
 
 ```
-SKILL.md                              ← the walkthrough Claude follows, phase by phase
-templates/                            ← code files scaffolded into your project
-├── Dockerfile
-├── requirements.txt
-├── app.py                            ← FastAPI server: /ping, /invocations, /execution-parameters
-├── model_loader.py
-├── inference.py                      ← smoke_check + predict + predict_stream + zip_outputs
-├── metering.py                       ← per-inference billing headers (opt-in)
-├── websocket_handler.py              ← bidirectional streaming (opt-in)
-├── supervisord.conf                  ← multi-process container config (opt-in)
-├── package_model.sh                  ← builds model.tar and uploads to S3
-├── PRE_SUBMISSION_CHECKLIST.md
-└── test/                             ← test_input.json, test_local.sh, test_streaming.py, test_websocket.py
-reference/                             ← docs Claude reads to cite constraints (not scaffolded)
-├── contract.md                       ← endpoint/header/timing cheat sheet
-├── timing.md                         ← hard timing limits
-├── checklist.md                      ← full pre-submission checklist
-├── gap-checks.md                     ← gap-analysis list for existing projects
-├── websocket.md                      ← bidirectional streaming + client SDK notes
-├── billing.md                        ← hourly vs. per-inference metering
-├── logging.md                        ← CloudWatch logging patterns
-└── marketplace-listing.md            ← CreateModelPackage skeleton for the also-list path
+sagemaker-marketplace-onboarding/        ← the installable skill
+├── SKILL.md                             ← the walkthrough your agent follows, phase by phase
+├── templates/                           ← code files scaffolded into your project
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── app.py                           ← FastAPI server: /ping, /invocations, /execution-parameters
+│   ├── model_loader.py
+│   ├── inference.py                     ← smoke_check + predict + predict_stream + zip_outputs
+│   ├── metering.py                      ← per-inference billing headers (opt-in)
+│   ├── websocket_handler.py             ← bidirectional streaming (opt-in)
+│   ├── supervisord.conf                 ← multi-process container config (opt-in)
+│   ├── package_model.sh                 ← builds model.tar and uploads to S3
+│   ├── PRE_SUBMISSION_CHECKLIST.md
+│   └── test/                            ← test_input.json, test_local.sh, test_streaming.py, test_websocket.py
+└── reference/                           ← docs your agent reads to cite constraints (not scaffolded)
+    ├── contract.md                      ← endpoint/header/timing cheat sheet
+    ├── timing.md                        ← hard timing limits
+    ├── checklist.md                     ← full pre-submission checklist
+    ├── gap-checks.md                    ← gap-analysis list for existing projects
+    ├── websocket.md                     ← bidirectional streaming + client SDK notes
+    ├── billing.md                       ← hourly vs. per-inference metering
+    ├── logging.md                       ← CloudWatch logging patterns
+    └── marketplace-listing.md           ← CreateModelPackage skeleton for the also-list path
 ```
 
-`sagemaker-marketplace-onboarding.skill` — a prebuilt zip of the above three (wrapped in a `sagemaker-marketplace-onboarding/` folder, the name most agents expect under their own skills directory — e.g. `.claude/skills/` for Claude Code, `.kiro/skills/` for Kiro, `.agents/skills/` for Codex), attached to each [release](../../releases).
+`.claude-plugin/` — `plugin.json` + `marketplace.json`, so Claude Code's native `/plugin marketplace add` and the `npx skills` CLI both find the skill directly, without a directory scan.
+
+`sagemaker-marketplace-onboarding.skill` — a prebuilt zip of the skill folder, attached to each [release](../../releases).
 
 - **`templates/`** — files copied into your project. Changing one changes what you ship.
-- **`reference/`** — docs Claude reads to answer questions and cite constraints, without touching your code.
+- **`reference/`** — docs your agent reads to answer questions and cite constraints, without touching your code.
 
 ## Scope — what this skill does *not* do
 

@@ -18,12 +18,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f sagemaker-marketplace-onboarding.skill
-          STAGE="$(mktemp -d)/sagemaker-marketplace-onboarding"
-          mkdir -p "$STAGE"
-          cp SKILL.md "$STAGE/"
-          cp -r reference "$STAGE/"
-          cp -r templates "$STAGE/"
-          (cd "$(dirname "$STAGE")" && zip -rX "$OLDPWD/sagemaker-marketplace-onboarding.skill" "$(basename "$STAGE")")
+          zip -rX sagemaker-marketplace-onboarding.skill sagemaker-marketplace-onboarding
 
       - name: Attach to release
         if: github.event_name == 'release'
