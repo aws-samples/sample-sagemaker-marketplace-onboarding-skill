@@ -1,10 +1,10 @@
-# SageMaker Marketplace Onboarding — a Claude Code Skill
+# SageMaker Marketplace Onboarding — an Agent Skill for Claude Code, Amazon Quick, Kiro, and Codex
 
 [![skills.sh](https://skills.sh/b/aws-samples/sample-sagemaker-marketplace-onboarding-skill)](https://skills.sh/aws-samples/sample-sagemaker-marketplace-onboarding-skill)
 
-An interactive [Claude Code](https://docs.claude.com/en/docs/claude-code) skill that walks model providers through building an inference container that complies with the **Amazon SageMaker Marketplace** container contract — and, optionally, through publishing a Marketplace listing.
+An interactive [Agent Skill](https://agentskills.io) that walks model providers through building an inference container that complies with the **Amazon SageMaker Marketplace** container contract — and, optionally, through publishing a Marketplace listing. Works with [Claude Code](https://docs.claude.com/en/docs/claude-code), [Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html), [Kiro](https://kiro.dev/docs/skills/), [Codex](https://developers.openai.com/codex/skills), and any other tool that supports the standard `SKILL.md` format.
 
-You describe your model; Claude guides you phase by phase — inventorying an existing project or scaffolding a new one, enforcing the `/ping` and `/invocations` contract, packaging model weights, running a local validation gate, and pushing to ECR. It is 100% guidance and templates: **no code runs on your behalf, and it never edits your existing project files.**
+You describe your model; your agent guides you phase by phase — inventorying an existing project or scaffolding a new one, enforcing the `/ping` and `/invocations` contract, packaging model weights, running a local validation gate, and pushing to ECR. It is 100% guidance and templates: **no code runs on your behalf, and it never edits your existing project files.**
 
 > **Non-production disclaimer.** The templates this skill scaffolds (`app.py`, `Dockerfile`, `model_loader.py`, `inference.py`, `metering.py`, `websocket_handler.py`, and the rest of `templates/`) are provided for demonstration and as a starting point only. They are **not intended for production or Marketplace submission as-is** and have not undergone security review. Before deploying or submitting a listing, you are responsible for your own security review and testing — including input validation, authentication/authorization where applicable, dependency pinning and vulnerability scanning, and any controls your use case and compliance obligations require.
 
@@ -22,7 +22,7 @@ You describe your model; Claude guides you phase by phase — inventorying an ex
 
 ## Requirements
 
-- [Claude Code](https://docs.claude.com/en/docs/claude-code) installed.
+- One of: [Claude Code](https://docs.claude.com/en/docs/claude-code), [Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html), [Kiro](https://kiro.dev/docs/skills/), [Codex](https://developers.openai.com/codex/skills), or another agent that reads the standard `SKILL.md` format.
 - For local container testing: Docker, and the AWS CLI configured if you push to ECR.
 - Python 3.12+ if you use the WebSocket client SDK notes (see `reference/websocket.md`).
 
@@ -50,24 +50,33 @@ mkdir -p ~/.claude/skills/sagemaker-marketplace-onboarding
 cp -r sample-sagemaker-marketplace-onboarding-skill/{SKILL.md,reference,templates} ~/.claude/skills/sagemaker-marketplace-onboarding/
 ```
 
-**Option C — via the [skills CLI](https://github.com/vercel-labs/skills)**
+**Option C — via the [skills CLI](https://github.com/vercel-labs/skills)** (auto-detects Claude Code, Kiro, and Codex; installs to each one's own skills directory)
 
 ```bash
 npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill
+
+# Or target a specific agent:
+npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a claude-code
+npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a kiro-cli
+npx skills add aws-samples/sample-sagemaker-marketplace-onboarding-skill -a codex
 ```
 
-Restart Claude Code (or start a fresh session) so it picks up the new skill.
+**Option D — Amazon Quick**
+
+Amazon Quick's desktop app imports skills from a single `SKILL.md` file rather than a repo URL: open **Agents & skills** > **Skills** tab > **+ Create** > **Import from file**, and select this repo's `SKILL.md`. See [Skills and agents in Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html) for details.
+
+Restart your agent (or start a fresh session) so it picks up the new skill.
 
 ## Usage
 
-Start a Claude Code session and describe what you want. The skill activates on requests like:
+Start a session with your agent and describe what you want. The skill activates on requests like:
 
 - "Help me build a SageMaker Marketplace container"
 - "Onboard my model to SageMaker Marketplace"
 - "Package my model for SageMaker Marketplace"
 - "Review my container against the SageMaker Marketplace spec"
 
-Claude asks two framing questions up front — container-only vs. also-list, and existing project vs. greenfield — then walks the rest one phase at a time, confirming before it moves on.
+Your agent asks two framing questions up front — container-only vs. also-list, and existing project vs. greenfield — then walks the rest one phase at a time, confirming before it moves on.
 
 ### The walkthrough at a glance
 
@@ -108,7 +117,7 @@ reference/                             ← docs Claude reads to cite constraints
 └── marketplace-listing.md            ← CreateModelPackage skeleton for the also-list path
 ```
 
-`sagemaker-marketplace-onboarding.skill` — a prebuilt zip of the above three (wrapped in a `sagemaker-marketplace-onboarding/` folder, the name Claude Code expects under `.claude/skills/`), attached to each [release](../../releases).
+`sagemaker-marketplace-onboarding.skill` — a prebuilt zip of the above three (wrapped in a `sagemaker-marketplace-onboarding/` folder, the name most agents expect under their own skills directory — e.g. `.claude/skills/` for Claude Code, `.kiro/skills/` for Kiro, `.agents/skills/` for Codex), attached to each [release](../../releases).
 
 - **`templates/`** — files copied into your project. Changing one changes what you ship.
 - **`reference/`** — docs Claude reads to answer questions and cite constraints, without touching your code.
@@ -126,7 +135,7 @@ By design, the skill:
 
 Contributions are welcome. Found a bug, an outdated constraint, or a gap? [Open an issue](../../issues) or send a [pull request](../../pulls). See [CONTRIBUTING.md](CONTRIBUTING.md) for details. The skill is entirely documentation and templates, so most changes are edits to `SKILL.md`, `reference/*.md`, or `templates/`.
 
-Please test locally before opening a PR: install the skill into your own Claude Code, run the walkthrough end to end, and for template changes do a full scaffold plus `bash test/test_local.sh <image> <weights>`. There is no CI — manual testing is the gate.
+Please test locally before opening a PR: install the skill into your own agent (Claude Code, Amazon Quick, Kiro, or Codex), run the walkthrough end to end, and for template changes do a full scaffold plus `bash test/test_local.sh <image> <weights>`. There is no CI — manual testing is the gate.
 
 A few design principles are load-bearing and shouldn't be changed casually: `/ping` must exercise inference, `ENTRYPOINT` must be exec-form, no weights baked into the image and no runtime network calls, container code stays mode-agnostic, and every walkthrough question uses structured prompts rather than free text.
 
