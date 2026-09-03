@@ -1,7 +1,5 @@
 # Pre-Submission Checklist
 
-> **Non-production disclaimer.** These scaffolded templates are a starting point provided for demonstration and are not production-ready as-is. Complete your own security review and testing — input validation, authentication/authorization where applicable, dependency pinning, and vulnerability scanning — before deploying or submitting a Marketplace listing.
-
 Walk through every item below before pushing to ECR and creating the model package. These are the conditions the SageMaker Marketplace validation job checks against.
 
 ## Endpoints
