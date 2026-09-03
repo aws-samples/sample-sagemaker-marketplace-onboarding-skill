@@ -1,6 +1,6 @@
 # SageMaker Marketplace Onboarding — an Agent Skill for Claude Code, Amazon Quick, Kiro, and Codex
 
-[![skills.sh](https://skills.sh/b/aws-samples/sample-sagemaker-marketplace-onboarding-skill)](https://skills.sh/aws-samples/sample-sagemaker-marketplace-onboarding-skill)
+[![License](https://img.shields.io/github/license/aws-samples/sample-sagemaker-marketplace-onboarding-skill)](LICENSE) [![Release](https://img.shields.io/github/v/release/aws-samples/sample-sagemaker-marketplace-onboarding-skill?include_prereleases)](../../releases)
 
 An interactive [Agent Skill](https://agentskills.io) that walks model providers through building an inference container that complies with the **Amazon SageMaker Marketplace** container contract — and, optionally, through publishing a Marketplace listing. Works with [Claude Code](https://docs.claude.com/en/docs/claude-code), [Amazon Quick](https://docs.aws.amazon.com/quick/latest/userguide/skills-and-agents-desktop.html), [Kiro](https://kiro.dev/docs/skills/), [Codex](https://developers.openai.com/codex/skills), and any other tool that supports the standard `SKILL.md` format.
 
