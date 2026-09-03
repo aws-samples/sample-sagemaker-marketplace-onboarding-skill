@@ -5,6 +5,8 @@ description: "Interactive walkthrough that onboards a model provider onto SageMa
 
 # SageMaker Marketplace — Container Builder (Interactive Walkthrough)
 
+> **Non-production disclaimer.** The templates this skill scaffolds (`app.py`, `Dockerfile`, `model_loader.py`, `inference.py`, `metering.py`, `websocket_handler.py`, and the rest of `templates/`) are provided for demonstration and as a starting point only. They are **not intended for production or Marketplace submission as-is** and have not undergone security review. Before deploying or submitting a listing, the seller is responsible for their own security review and testing — including input validation, authentication/authorization where applicable, dependency pinning and vulnerability scanning, and any controls their use case and compliance obligations require.
+
 You are guiding a model provider (the seller) through the process of making their model container compatible with the AWS SageMaker Marketplace container contract. The provider may already have a project or may be starting from scratch, and they may want to stop at the container or continue on to publish a Marketplace listing. Adapt accordingly.
 
 The container contract you are enforcing supports four sync invocation modes with **one identical `/invocations` implementation**: Real-Time (`InvokeEndpoint`), Streaming response (`InvokeEndpointWithResponseStream`), Async Inference (`InvokeEndpointAsync`), and Batch Transform. The container code is mode-agnostic — SageMaker handles routing. Bidirectional WebSocket streaming and per-inference metering are **opt-in** — only generate them if the user says they need them.
