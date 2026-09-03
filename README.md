@@ -1,5 +1,6 @@
 # SageMaker Marketplace Onboarding — an Agent Skill for Claude Code, Amazon Quick, Kiro, and Codex
 
+[![Agent Skill](https://img.shields.io/badge/Agent_Skill-agentskills.io-2EA043?style=flat)](https://agentskills.io)
 [![License](https://img.shields.io/github/license/aws-samples/sample-sagemaker-marketplace-onboarding-skill?style=flat)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/aws-samples/sample-sagemaker-marketplace-onboarding-skill?include_prereleases&style=flat)](../../releases)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-%E2%9C%93-6E56CF?style=flat)](https://docs.claude.com/en/docs/claude-code)
