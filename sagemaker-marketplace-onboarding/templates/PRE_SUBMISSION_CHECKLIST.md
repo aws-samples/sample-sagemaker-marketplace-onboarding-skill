@@ -54,6 +54,7 @@ Walk through every item below before pushing to ECR and creating the model packa
 
 ## Per-inference billing (only if selected)
 
-- [ ] Metering emitted on every 2XX `/invocations` response via `X-Amzn-Inference-Metering: {"Dimension":"...","ConsumedUnits":N}`. Mini-batch: `ConsumedUnits` = number of inferences processed. No metering on non-2XX.
-- [ ] Dimension name matches the Marketplace listing configuration.
+- [ ] Metering emitted on every 2XX `/invocations` response via `X-Amzn-Inference-Metering: {"Dimension":"inference.count","ConsumedUnits":N}`. Mini-batch: `ConsumedUnits` = number of inferences processed. No metering on non-2XX.
+- [ ] `Dimension` is exactly `inference.count` (no custom dimension names on ML listings); `ConsumedUnits` is scaled to the unit size priced on the listing.
+- [ ] Unit size (`QUANTITY_PER_UNIT`) is final — changing it after validation means rebuilding and re-validating the image.
 - [ ] For WebSocket: `X-Amzn-SageMaker-Metadata-Stream-Supported: true` set on upgrade, `/invocations-bidirectional-stream-metadata` implemented.

@@ -85,18 +85,18 @@ Use **AskUserQuestion** — not free-text — grouped into at most two calls to 
 
 **Group 3 — Billing:**
 - Billing model: **Hourly** (customer pays $/hour per instance) or **Per-inference / usage-based** (customer pays per unit consumed — you must emit metering; harder to change later, 90-day freeze after any price update)
-- If per-inference: what's the billable dimension? The right choice depends on modality — pick from the list below or supply a custom name. This is a naming decision — it must match between the container's metering emission and the Marketplace listing configuration.
+- If per-inference: what does **one unit** represent? ML listings bill on a single, fixed dimension — `inference.count` — and do not support custom dimension names (no `audio_seconds`, `tokens`, etc.; do not suggest configuring one). Per-second, per-token, or per-character pricing is expressed by scaling `ConsumedUnits`: the container reports N units of `inference.count`, and the listing's per-inference price is the price of one unit. The right unit depends on modality:
 
-  | Modality | Typical dimensions |
+  | Modality | Typical unit (1 unit of `inference.count` =) |
   |---|---|
-  | LLM | `tokens`, `inference.count` |
-  | STT | `audio_seconds`, `inference.count` |
-  | TTS | `characters_synthesized`, `audio_seconds`, `inference.count` |
-  | Image classification / detection | `images`, `inference.count` |
-  | Image generation | `images`, `pixels`, `inference.count` |
-  | Text embedding | `characters_processed`, `tokens`, `inference.count` |
-  | Vision-language | `tokens`, `images`, `inference.count` |
-  | Other / catch-all | `inference.count` |
+  | LLM / vision-language | one request, or a block of tokens (e.g. 1,000) |
+  | STT / TTS / audio | one request, or one second (or minute) of audio |
+  | TTS | a block of characters synthesized (e.g. 100) |
+  | Image classification / detection / generation | one image, or a block of pixels |
+  | Text embedding | one request, or a block of input characters/tokens |
+  | Other / catch-all | one request |
+
+- If per-inference: what's the intended price per unit? The listing price has at most three decimal places ($0.001 minimum per unit). If the intended price is below that, the unit must be larger (e.g. 1 unit = 1 minute instead of 1 second). The unit size is baked into the container — changing it later means rebuilding and re-validating the image — so pick one that leaves the price comfortably above $0.001, with room to adjust the listing price instead of the code. See `reference/billing.md`, "Price granularity".
 
 **Modality-specific follow-ups** — only ask if the answer above triggers them:
 
@@ -205,7 +205,7 @@ Walk the user through each endpoint's contract. For each one, show the relevant 
 - Must respond to WebSocket Ping frames (60s interval; 5 missed Pongs → connection closed).
 - Max connection duration: 30 minutes. Client must reconnect for longer sessions. Design the container stateless per-connection.
 - Errors: send Text frame with `{"ModelStreamError": {"ErrorCode": "...", "Message": "..."}}` or a Close frame.
-- **If per-inference billing on WebSocket**: metering goes on a **companion metadata WebSocket** at `/invocations-bidirectional-stream-metadata`, not on the main data stream. Signal support with `X-Amzn-SageMaker-Metadata-Stream-Supported: true` in the upgrade response. See `websocket_handler.py` and `reference/websocket.md`.
+- **If per-inference billing on WebSocket**: metering goes on a **companion metadata WebSocket** at `/invocations-bidirectional-stream-metadata`, not on the main data stream. Signal support with `X-Amzn-SageMaker-Metadata-Stream-Supported: true` in the upgrade response, then send `{"Metering": {"Dimension": "inference.count", "ConsumedUnits": N, ...}}` frames mid-stream as usage accrues (N scaled to the unit size; `0` is allowed). Same fixed dimension as the header path — no `audio_seconds`. See `websocket_handler.py` and `reference/websocket.md`.
 - **If modality is STT/TTS**: if the user wants this container easily consumable from a voice-orchestration framework like Pipecat, mention the control-message-vocabulary pattern (Speak/Flush/Clear/KeepAlive/Finalize) in `reference/pipecat-integration.md` while designing the container's WebSocket protocol — cheaper to build in now than retrofit later. Do not implement it unasked; just flag that the option exists at this point in the walkthrough.
 
 **Optional: mirroring metering into your own CloudWatch (EMF)** (only if per-inference billing was selected in Phase 2)
@@ -280,7 +280,7 @@ Guide the user through `package_model.sh`.
 4. **/execution-parameters** — returns valid batch config.
 5. **Streaming** (if enabled) — `test/test_streaming.py` shows chunks arriving progressively.
 6. **WebSocket** (if enabled) — `test/test_websocket.py`: connect, exchange frames, verify Ping/Pong, verify graceful close.
-7. **Metering** (if per-inference) — inspect `/invocations` response headers; confirm `X-Amzn-Inference-Metering: {"Dimension":"...","ConsumedUnits":N}` present on every 2XX response and absent on error responses.
+7. **Metering** (if per-inference) — inspect `/invocations` response headers; confirm `X-Amzn-Inference-Metering: {"Dimension":"inference.count","ConsumedUnits":N}` present on every 2XX response and absent on error responses.
 8. **Network isolation** — `docker run --network none ...`. Container must still start and respond to `/ping`. If it fails, there's a runtime dependency on external services.
 9. **SIGTERM** — `docker stop test-model` completes in <30 s. If it doesn't, ENTRYPOINT is probably shell form.
 
@@ -404,7 +404,7 @@ Read these when you need to quote a specific constraint:
 - `reference/checklist.md` — full pre-submission checklist template
 - `reference/gap-checks.md` — the gap-analysis checklist for Phase 3
 - `reference/websocket.md` — bidirectional streaming protocol, framing, Ping/Pong, metadata channel
-- `reference/billing.md` — hourly vs per-inference, dimensions, freeze rule
+- `reference/billing.md` — hourly vs per-inference, the fixed `inference.count` dimension and unit scaling, $0.001 price granularity, freeze rule
 - `reference/logging.md` — CloudWatch log groups, structured JSON logging, key events to log, multi-process pitfalls
 - `reference/marketplace-listing.md` — CreateModelPackage API skeleton + validation job (Phase 11 only)
 - `reference/observability.md` — CloudWatch metrics catalog (invocation/instance/detailed-observability) + EMF business-metric emission (Phase 12 only)
