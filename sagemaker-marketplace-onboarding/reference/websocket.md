@@ -109,8 +109,7 @@ now reported mid-stream. There are no custom dimensions (no `audio_seconds`): to
 audio, report seconds of audio (scaled to your unit size) as `ConsumedUnits` of `inference.count`. See
 `reference/billing.md` for unit scaling and the $0.001 price-granularity constraint.
 
-At the time of writing there is no public AWS documentation page dedicated to this metadata-channel
-protocol; the bidirectional streaming feature itself is introduced in the AWS ML blog post
+The bidirectional streaming feature itself is introduced in the AWS ML blog post
 ["Introducing bidirectional streaming for real-time inference on Amazon SageMaker
 AI"](https://aws.amazon.com/blogs/machine-learning/introducing-bidirectional-streaming-for-real-time-inference-on-amazon-sagemaker-ai/).
 

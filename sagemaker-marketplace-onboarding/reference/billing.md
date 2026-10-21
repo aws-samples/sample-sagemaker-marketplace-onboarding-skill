@@ -52,9 +52,8 @@ References: the bidirectional streaming feature itself is introduced in the AWS 
 ["Introducing bidirectional streaming for real-time inference on Amazon SageMaker
 AI"](https://aws.amazon.com/blogs/machine-learning/introducing-bidirectional-streaming-for-real-time-inference-on-amazon-sagemaker-ai/);
 the `inference.count` metering header is documented in the [Marketplace ML pricing
-guide](https://docs.aws.amazon.com/marketplace/latest/userguide/machine-learning-pricing.html). At the
-time of writing there is no public AWS documentation page dedicated to the metadata-channel metering
-protocol — `reference/websocket.md` is this skill's summary of it.
+guide](https://docs.aws.amazon.com/marketplace/latest/userguide/machine-learning-pricing.html); the
+metadata-channel protocol is summarized in `reference/websocket.md`.
 
 ## The dimension is always `inference.count`
 
