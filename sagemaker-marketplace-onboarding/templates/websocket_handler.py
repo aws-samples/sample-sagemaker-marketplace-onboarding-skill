@@ -22,7 +22,9 @@ Without this label, SageMaker will NOT route WebSocket traffic to the container.
 Per-inference billing (opt-in, further):
     See metering.py. Metering for bidirectional streaming goes on a COMPANION
     metadata WebSocket at /invocations-bidirectional-stream-metadata, NOT on
-    the main data stream.
+    the main data stream. Frames always use the fixed "inference.count"
+    dimension; per-second (or per-token) pricing is expressed by scaling
+    ConsumedUnits, never by a custom dimension name.
 
 Fragmentation (advanced):
     The SageMaker protocol maps WebSocket Data Frame FIN=0 → PayloadPart
@@ -128,16 +130,20 @@ async def bidirectional_metadata(websocket: WebSocket) -> None:
     logger.info(f"WS metadata channel opened (request_id={request_id})")
 
     try:
-        # The provider signals billable units by calling report_metering()
-        # from inside handle_stream_session on the main channel. The bridge
-        # between the two is application-defined; a common pattern is a
-        # per-request asyncio.Queue keyed by request_id. Example scaffold:
+        # The provider records billable usage from inside handle_stream_session
+        # on the main channel. The bridge between the two is
+        # application-defined; a common pattern is a per-request
+        # UnitAccumulator (from metering.py) keyed by request_id: the data
+        # channel calls acc.add(seconds_of_audio) as it processes audio, and
+        # this channel flushes whole units once per second (and once more
+        # when the session ends, so the last partial interval is billed).
+        # Example scaffold:
         #
-        #   from metering_bridge import get_queue
-        #   queue = get_queue(request_id)
+        #   from metering_bridge import get_accumulator
+        #   acc = get_accumulator(request_id)
         #   while True:
-        #       units, dimension, client_token = await queue.get()
-        #       frame = make_metering_frame(units, dimension, client_token)
+        #       await asyncio.sleep(1)  # metadata channel: max 1 msg/sec
+        #       frame = make_metering_frame(acc.take_units())
         #       await websocket.send_text(json.dumps(frame))
         #
         # TODO — replace with your metering-bridge implementation.

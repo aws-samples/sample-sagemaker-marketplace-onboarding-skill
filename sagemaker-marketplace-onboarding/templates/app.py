@@ -166,7 +166,11 @@ async def invocations(request: Request):
     # error, the buyer is not charged. Emit metering on every successful
     # invocation, or you will not be paid for those calls.
     #
-    # consumed_units = ...   # e.g. len(tokens_generated), audio_seconds, etc.
+    # The dimension is always "inference.count"; to price per second, token,
+    # etc., report that quantity scaled to your unit (see metering.py
+    # QUANTITY_PER_UNIT and reference/billing.md).
+    #
+    # consumed_units = ...   # e.g. 1, or seconds of audio or tokens / QUANTITY_PER_UNIT
     # headers["X-Amzn-Inference-Metering"] = inference_metering_header(consumed_units)
 
     return Response(content=result, media_type=response_content_type, headers=headers)
