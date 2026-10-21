@@ -140,19 +140,21 @@ records into a single frame; binary frames are not supported for metering):
 {
   "Metering": {
     "Dimension": "inference.count",
-    "ConsumedUnits": 150,
-    "ClientToken": "a3f2b1c0-unique-uuid"
+    "ConsumedUnits": 720,
+    "ClientToken": "<uuid>"
   }
 }
 ```
 
-(Here an STT model priced per second of audio, with 1 unit = 1 second, reports 150 seconds of audio
-processed since its previous frame.)
+Here the product is priced per second of audio, and the record reports 12 minutes of metered audio
+= 720 seconds, so `"ConsumedUnits": 720`. Each record reports the units consumed **since the previous
+record** (not a running total); billing sums all records in the session. The provider defines what
+counts as metered usage (e.g. audio processed, not connection time).
 
 | Field | Required | Type | Constraint |
 |---|---|---|---|
 | `Metering.Dimension` | Yes | string | always `inference.count` |
-| `Metering.ConsumedUnits` | Yes | number | whole number ≥ 0 — `0` is allowed (e.g. an interval with no billable usage) |
+| `Metering.ConsumedUnits` | Yes | number | >= 0 (0 is allowed, e.g. an interval with no billable usage) |
 | `Metering.ClientToken` | No | string | max 64 characters — idempotency key; a duplicate `ClientToken` on the same connection is recorded only once |
 
 `Dimension` is always `inference.count` — ML listings do not support custom dimension names.
@@ -167,9 +169,9 @@ processed since its previous frame.)
 
 ### Send incrementally, not just at session end
 
-Recommended: emit metering records incrementally as usage accrues (e.g. once per second with the
-units accrued since the last frame — `metering.py`'s `UnitAccumulator` tracks the fractional
-remainder), not only once at session close. **If the session drops mid-stream, billing is only
+Recommended: emit metering records incrementally as usage accrues (at most 1 message per second,
+each with the units consumed since the previous record — `metering.py`'s `UnitAccumulator` is one way
+to carry fractional remainders between records), not only once at session close. **If the session drops mid-stream, billing is only
 captured for usage reported up to that point** — a single end-of-session record loses everything if
 the connection dies first.
 

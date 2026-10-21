@@ -55,9 +55,9 @@ Copy this file into the project as `PRE_SUBMISSION_CHECKLIST.md`. Walk through e
 
 - [ ] Every 2XX `/invocations` response emits the `X-Amzn-Inference-Metering` header with a JSON value: `{"Dimension": "inference.count", "ConsumedUnits": N}`. Mini-batch requests set `ConsumedUnits` to the number of inferences processed. No metering on non-2XX responses.
 - [ ] `Dimension` is exactly `inference.count` (ML listings do not support custom dimension names); per-second/per-token pricing is expressed by scaling `ConsumedUnits` to the unit size priced on the listing.
-- [ ] The unit size (`QUANTITY_PER_UNIT` in `metering.py`) was chosen so the intended per-unit price is ≥ $0.001 with room to adjust the listing price without rebuilding the image.
+- [ ] The unit size (`QUANTITY_PER_UNIT` in `metering.py`) is chosen so the per-unit price is at least $0.001 (listing prices support three decimal places); changing it later means a new model package version and re-validation.
 - [ ] For bidirectional streaming: the WebSocket upgrade response includes `X-Amzn-SageMaker-Metadata-Stream-Supported: true` and `/invocations-bidirectional-stream-metadata` is implemented.
-- [ ] Metadata channel messages are one record per frame, text-only, ≤512 bytes, sent at ≤1/sec, with `Dimension: "inference.count"` and a whole-number `ConsumedUnits` ≥ 0.
+- [ ] Metadata channel messages are one record per frame, text-only, ≤512 bytes, sent at ≤1/sec, with `Dimension: "inference.count"` and `ConsumedUnits` >= 0 (0 is allowed), each record reporting units consumed since the previous record.
 - [ ] `X-Amzn-SageMaker-Metadata-Stream-Required` is deliberately set `true` or `false` (not left to default) based on whether the model can tolerate unmetered usage if the metadata channel drops.
 
 ## Contract compliance (spot-check)

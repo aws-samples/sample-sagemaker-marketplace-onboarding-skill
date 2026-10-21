@@ -65,9 +65,9 @@ The full list of things to compare between an existing model project and the Sag
 **Per-inference billing** (only if selected in Phase 2):
 - [ ] Every 2XX `/invocations` response emits the `X-Amzn-Inference-Metering` header. Value is a JSON string: `{"Dimension": "inference.count", "ConsumedUnits": N}`. Mini-batch requests set `ConsumedUnits` to the batch size. Metering is not emitted on non-2XX responses (which are not billed).
 - [ ] `Dimension` is exactly `inference.count` — flag any custom dimension name (e.g. `audio_seconds`, `tokens`) as a gap; per-second/per-token pricing must be expressed by scaling `ConsumedUnits`.
-- [ ] Unit size is a single named constant, chosen so the intended per-unit price is ≥ $0.001 with headroom (see `reference/billing.md`, "Price granularity").
+- [ ] Unit size is a single named constant, chosen so the per-unit price is at least $0.001 (see `reference/billing.md`, "Price granularity").
 - [ ] For WebSocket: upgrade response includes `X-Amzn-SageMaker-Metadata-Stream-Supported: true` and the container implements `/invocations-bidirectional-stream-metadata`.
-- [ ] Metadata frames: one record per frame, text-only, ≤512 bytes, ≤1 msg/sec, `Dimension: "inference.count"`, whole-number `ConsumedUnits` ≥ 0, `ClientToken` ≤64 chars.
+- [ ] Metadata frames: one record per frame, text-only, ≤512 bytes, ≤1 msg/sec, `Dimension: "inference.count"`, `ConsumedUnits` >= 0 (0 is allowed), `ClientToken` ≤64 chars.
 - [ ] `X-Amzn-SageMaker-Metadata-Stream-Required` set explicitly (true = fail the data stream with HTTP 424 if metering drops; false/default = keep serving unmetered).
 
 ## Multi-process containers (only if applicable)

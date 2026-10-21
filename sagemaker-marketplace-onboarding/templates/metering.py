@@ -26,9 +26,12 @@ Two emission modes, depending on which endpoint is being billed:
    /invocations-bidirectional-stream-metadata, NOT on the main data stream.
    Container signals support via X-Amzn-SageMaker-Metadata-Stream-Supported: true
    in the WebSocket upgrade response, then emits frames mid-stream like:
-       {"Metering": {"Dimension": "inference.count", "ConsumedUnits": 150,
+       {"Metering": {"Dimension": "inference.count", "ConsumedUnits": 720,
                      "ClientToken": "<uuid>"}}
-   (here: 150 seconds of audio, with 1 unit = 1 second).
+   (here: a product priced per second of audio reports 12 minutes of
+   metered audio = 720 seconds). Each record reports the units consumed
+   since the previous record, not a running total; billing sums all records
+   in the session.
 
 The dimension is ALWAYS "inference.count". ML product listings do not support
 custom dimension names (no "audio_seconds", "tokens", etc.). To price by
@@ -36,9 +39,11 @@ seconds, tokens, characters, or pixels, scale ConsumedUnits instead: decide
 what one unit represents (QUANTITY_PER_UNIT below), report that many units,
 and set the listing's per-inference price as the price of one unit.
 
-The listing price has at most three decimal places ($0.001 minimum per unit),
-and changing QUANTITY_PER_UNIT later means a new image and re-validation, so
-pick it before submitting. See reference/billing.md, "Price granularity".
+Listing prices support three decimal places ($0.001 minimum per unit). If
+your per-second price is lower, define a larger unit (e.g. 1 unit = 10
+seconds). Changing QUANTITY_PER_UNIT later means a new model package version
+and re-validation, so pick it before submitting. See reference/billing.md,
+"Price granularity".
 
 CRITICAL: If per-inference billing is enabled on your listing but the
 container fails to emit metering, you will not be paid for those invocations.
@@ -57,20 +62,20 @@ DIMENSION = "inference.count"
 
 # How much billable usage one unit of inference.count represents, in whatever
 # quantity your model bills by. Examples:
-#   - 1     — one request, or one second of audio (STT/TTS)
-#   - 60    — one minute of audio, if quantities are seconds
-#   - 1000  — one block of 1,000 tokens or characters
+#   - 1   — one request, or one second of audio (STT/TTS)
+#   - 10  — ten seconds of audio, if quantities are seconds
 # The listing's per-inference price is the price of ONE such unit. Pick this
-# once, before validation: changing it means rebuilding and re-validating the
-# image, whereas the listing price can be adjusted without touching code.
+# once, before validation: changing it means a new model package version and
+# re-validation.
 QUANTITY_PER_UNIT = 1
 
 
 class UnitAccumulator:
     """
-    Convert a fractional billable quantity (e.g. 2.4 seconds of audio) into
-    whole inference.count units, carrying the remainder forward so nothing is
-    lost or overcharged across calls.
+    Recommended pattern (not a platform requirement): convert a fractional
+    billable quantity (e.g. part of a second of audio) into whole
+    inference.count units, carrying the remainder forward so nothing is lost
+    or rounded up across records.
 
     Example (bidirectional stream, 1 unit = 1 second of audio):
         acc = UnitAccumulator()
@@ -121,7 +126,7 @@ def inference_metering_header(consumed_units: int) -> str:
 
 
 def make_metering_frame(
-    consumed_units: int,
+    consumed_units: float,
     client_token: str = "",
 ) -> Dict[str, Any]:
     """
@@ -139,8 +144,8 @@ def make_metering_frame(
     not after -- SageMaker silently drops malformed frames rather than
     erroring back):
       - Dimension: always "inference.count".
-      - ConsumedUnits: whole number >= 0 (0 is allowed, e.g. an interval
-        with no billable usage).
+      - ConsumedUnits: number >= 0 (0 is allowed, e.g. an interval with no
+        billable usage).
       - Exactly ONE metering record per WebSocket text frame -- never batch
         multiple records into one frame.
       - Max frame size: 512 bytes total (the serialized JSON, not just the
@@ -151,19 +156,21 @@ def make_metering_frame(
         once per second rather than one frame per inference event.
       - Text frames only -- binary frames are not accepted for metering.
 
-    Recommended calling pattern: call this once per second (or per natural
-    accounting boundary, e.g. every N seconds of audio processed) with the
-    INCREMENTAL units consumed since the last call, not a running total --
+    Recommended calling pattern: call this at most once per second with the
+    INCREMENTAL units consumed since the previous record, not a running
+    total (billing sums all records in the session) --
     UnitAccumulator.take_units() returns exactly that.
     Sending incrementally means a mid-stream disconnect still gets the
     provider paid for usage reported up to that point.
     """
-    if int(consumed_units) < 0:
+    if isinstance(consumed_units, bool) or not isinstance(consumed_units, (int, float)):
+        raise TypeError("ConsumedUnits must be a number")
+    if consumed_units < 0:
         raise ValueError("ConsumedUnits must be >= 0")
     frame = {
         "Metering": {
             "Dimension": DIMENSION,
-            "ConsumedUnits": int(consumed_units),
+            "ConsumedUnits": consumed_units,
             "ClientToken": client_token or str(uuid.uuid4()),
         }
     }

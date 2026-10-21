@@ -89,14 +89,14 @@ Use **AskUserQuestion** — not free-text — grouped into at most two calls to 
 
   | Modality | Typical unit (1 unit of `inference.count` =) |
   |---|---|
-  | LLM / vision-language | one request, or a block of tokens (e.g. 1,000) |
-  | STT / TTS / audio | one request, or one second (or minute) of audio |
-  | TTS | a block of characters synthesized (e.g. 100) |
+  | LLM / vision-language | one request, or a block of tokens |
+  | STT / TTS / audio | one request, or one second of audio |
+  | TTS | a block of characters synthesized |
   | Image classification / detection / generation | one image, or a block of pixels |
   | Text embedding | one request, or a block of input characters/tokens |
   | Other / catch-all | one request |
 
-- If per-inference: what's the intended price per unit? The listing price has at most three decimal places ($0.001 minimum per unit). If the intended price is below that, the unit must be larger (e.g. 1 unit = 1 minute instead of 1 second). The unit size is baked into the container — changing it later means rebuilding and re-validating the image — so pick one that leaves the price comfortably above $0.001, with room to adjust the listing price instead of the code. See `reference/billing.md`, "Price granularity".
+- If per-inference: what's the intended price per unit? Listing prices support three decimal places ($0.001 minimum per unit). If the per-second price is lower, define a larger unit (e.g. 1 unit = 10 seconds). The unit size lives in the model server, so changing it later means a new model package version and re-validation — decide it now. See `reference/billing.md`, "Price granularity".
 
 **Modality-specific follow-ups** — only ask if the answer above triggers them:
 

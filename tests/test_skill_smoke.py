@@ -61,10 +61,11 @@ class MeteringTemplateTest(unittest.TestCase):
         )
 
     def test_frame_shape(self):
-        frame = self.m.make_metering_frame(150, client_token="t1")
+        # 12 minutes of metered audio at 1 unit = 1 second.
+        frame = self.m.make_metering_frame(720, client_token="t1")
         self.assertEqual(
             frame,
-            {"Metering": {"Dimension": "inference.count", "ConsumedUnits": 150, "ClientToken": "t1"}},
+            {"Metering": {"Dimension": "inference.count", "ConsumedUnits": 720, "ClientToken": "t1"}},
         )
         self.assertLessEqual(len(json.dumps(frame).encode("utf-8")), 512)
 
@@ -74,6 +75,11 @@ class MeteringTemplateTest(unittest.TestCase):
     def test_negative_units_rejected(self):
         with self.assertRaises(ValueError):
             self.m.make_metering_frame(-1)
+
+    def test_non_numeric_units_rejected(self):
+        for bad in ("720", None, True):
+            with self.subTest(value=bad), self.assertRaises(TypeError):
+                self.m.make_metering_frame(bad)
 
     def test_accumulator_carries_remainder(self):
         acc = self.m.UnitAccumulator()  # 1 unit = 1 second
@@ -85,10 +91,10 @@ class MeteringTemplateTest(unittest.TestCase):
         self.assertEqual(acc.take_units(), 0)
 
     def test_accumulator_scaled_unit(self):
-        acc = self.m.UnitAccumulator(60)  # 1 unit = 1 minute
-        acc.add(150)
-        self.assertEqual(acc.take_units(), 2)
-        acc.add(30)
+        acc = self.m.UnitAccumulator(10)  # 1 unit = 10 seconds
+        acc.add(25)
+        self.assertEqual(acc.take_units(), 2)  # 5s carried
+        acc.add(5)
         self.assertEqual(acc.take_units(), 1)
 
 

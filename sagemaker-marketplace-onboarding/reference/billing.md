@@ -59,8 +59,8 @@ metadata-channel protocol is summarized in `reference/websocket.md`.
 
 ML product listings bill per-inference usage on a single, fixed dimension: **`inference.count`**. You
 cannot register a custom dimension name such as `audio_seconds`, `tokens`, or `characters` on an ML
-listing — do not try to configure one, and do not emit one from the container. Every metering record, header or metadata frame, uses
-`"Dimension": "inference.count"`.
+listing — do not try to configure one, and do not emit one from the container. Every metering record,
+header or metadata frame, uses `"Dimension": "inference.count"`.
 
 To price by something other than requests, **scale `ConsumedUnits`**: decide what one unit of
 `inference.count` represents, report that many units, and set the listing's per-inference price as
@@ -70,39 +70,25 @@ the price of one unit.
 |---|---|---|
 | Any (simplest) | One request / inference | `1` (or the mini-batch size) |
 | STT / TTS / audio | One second of audio processed or produced | Seconds of audio |
-| TTS | A block of characters synthesized (e.g. 100 characters) | Characters ÷ block size |
-| LLM / vision-language | A block of tokens (e.g. 1,000 tokens) | Tokens ÷ block size |
+| TTS | A block of characters synthesized | Characters ÷ block size |
+| LLM / vision-language | A block of tokens | Tokens ÷ block size |
 | Text embedding | A block of input characters or tokens | Input length ÷ block size |
-| Image models | One image, or a block of pixels (e.g. one megapixel) | Images, or pixels ÷ block size |
+| Image models | One image, or a block of pixels | Images, or pixels ÷ block size |
 
-`ConsumedUnits` is a whole number. When the underlying quantity is fractional (e.g. 2.4 seconds of
-audio), accumulate it and report whole units, carrying the remainder forward — `metering.py`'s
-`UnitAccumulator` does this. Rounding every request up instead overcharges buyers on short requests.
+Recommended: when the underlying quantity is fractional (e.g. part of a second of audio), accumulate
+it and report whole units, carrying the remainder forward — `metering.py`'s `UnitAccumulator` shows
+this pattern. It keeps each record's units exact without rounding every request up.
 
 Whatever unit you pick becomes part of the customer contract — document it on the listing (e.g.
 "price per inference = price per second of audio") so buyers can predict their bill.
 
 ## Price granularity: choose the unit size up front
 
-The per-inference price on the listing is entered with at most **three decimal places**, so the
-smallest non-zero price per unit is **$0.001**. If your target price for the natural unit is below
-that — say $0.0002 per second of audio — you cannot express it directly. The only lever left is to
-make one unit represent more usage (here, 1 unit = 5 seconds at $0.001).
-
-That unit size lives in the container's metering code, not on the listing. Changing it later means
-building a new image (or model package version) and going through Marketplace validation again — and
-it also changes what buyers are charged for. The listing price, by contrast, can be changed through
-the normal pricing-update process (subject to the rules below). So pick a unit size that leaves room
-to adjust **price** rather than **code**:
-
-- Choose a unit where your intended price is comfortably above $0.001, with room to go lower. For
-  example, if you expect to charge around $0.0002/second, 1 unit = 1 minute at $0.012 lets you later
-  move to $0.011, $0.010, … via a listing price change; 1 unit = 5 seconds at $0.001 leaves no room to
-  go lower at all.
-- Prefer round, explainable units (1 second, 1 minute, 1,000 tokens) over odd ones (8 seconds) so
-  buyers can map the price to their usage.
-- Keep the scale factor in one named constant (`metering.py`) and decide it before submitting for
-  validation — treat it as fixed for the life of the listing.
+Listing prices support three decimal places, so the minimum price is **$0.001 per unit**. If your
+per-second price is lower than that, define a larger unit (e.g. 1 unit = 10 seconds of audio) and
+price that unit instead. The unit size lives in the model server's metering code, not on the listing,
+so changing it later means a new model package version and re-validation. Decide it before you submit
+and keep it in one named constant (`QUANTITY_PER_UNIT` in `metering.py`).
 
 ## Critical pricing rules
 
