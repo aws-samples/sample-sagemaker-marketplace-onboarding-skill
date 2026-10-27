@@ -1,6 +1,6 @@
 ---
 name: sagemaker-marketplace-onboarding
-description: "Interactive walkthrough that onboards a model provider onto SageMaker Marketplace by making their model container spec-compliant. Handles existing projects (inventory + gap analysis + scaffold alongside without editing their files) and greenfield builds. Covers the /ping and /invocations contract (Real-Time, Streaming, Async, Batch Transform), optional bidirectional WebSocket, optional per-inference metering, model weights packaging, local testing, and ECR push. Optionally guides CreateModelPackage with the validation job for users who also want to publish. Use when the user says things like 'onboard my model to SageMaker Marketplace', 'list my model on SageMaker Marketplace', 'help me build a SageMaker Marketplace container', 'package my model for SageMaker Marketplace', 'review my container against the SageMaker Marketplace spec', or attaches the SageMaker Marketplace Model Listing Guide."
+description: "Guide model providers through building or reviewing SageMaker Marketplace inference containers and optional CreateModelPackage validation. Covers existing projects, greenfield scaffolds, endpoint contracts, inference modes, metering, model packaging, testing, and ECR. Use when users ask to onboard, package, validate, review, or list a model on SageMaker Marketplace."
 ---
 
 # SageMaker Marketplace — Container Builder (Interactive Walkthrough)
@@ -79,7 +79,9 @@ Use **AskUserQuestion** — not free-text — grouped into at most two calls to 
 - **Modality** — LLM (text-in / text-out) / STT (audio-in / text-out) / TTS (text-in / audio-out) / Image classification or detection / Image generation / Text embedding / Vision-language (multimodal) / Other. This drives which modality-specific patterns (if any) apply — for example, pronunciation overrides only apply to TTS; audio streaming protocols only apply to STT/TTS. Do not ask about pronunciation, audio streaming, or other modality-specific patterns unless the modality warrants it.
 - Framework (confirm from inventory or ask fresh for greenfield): PyTorch / HuggingFace Transformers / TensorFlow / ONNX Runtime / Triton / vLLM / Other
 - Model size on disk: <5 GB / 5–20 GB / 20–50 GB / >50 GB (drives cold-start budget conversation)
-- Target instance family: ml.g5.* / ml.g6.* / ml.g6e.* / ml.p4d.* / CPU (ml.m5/ml.c5)
+- **Target serving instance family or families**: for example, ml.g5.*, ml.g6e.*, ml.p6.*, ml.g7e.*, or CPU. These describe the eventual Real-Time or Async deployment, not the Marketplace validation job.
+- **Hardware compatibility constraints**: minimum accelerator memory, accelerator architecture or precision requirement (for example, NVFP4), and the container's CUDA major version. Record the requirement, not just the instance name.
+- **Marketplace validation fallback** (only when `goal = also-list`): can the same image and model artifact load and process a representative request on an earlier or smaller GPU family? Record the tested fallback separately. Do not assume that a serving family is available for Batch Transform.
 - Primary input `Content-Type`: application/json / audio (wav/mp3) / image / text/plain / multipart / other
 - Response shape: single JSON / single binary / multi-file (needs zip) / streaming chunks
 
@@ -270,9 +272,9 @@ Guide the user through `package_model.sh`.
 
 ---
 
-## Phase 8 — Local testing (the validation gate)
+## Phase 8 — Local testing (the container gate)
 
-**This is the primary validation. If it passes locally, it will work on SageMaker.** Do not let the user push to ECR until every test below is green.
+**This is the primary container-contract gate.** Passing it does not prove that the selected instance is supported by Batch Transform, that quota is available, or that Marketplace certification will pass. Do not let the user push to ECR until every applicable test below is green.
 
 1. **Container starts** — `docker run --gpus all --rm -p 8080:8080/tcp -v $(pwd)/model_artifacts:/opt/ml/model:ro --name test-model <image>:latest serve`
 2. **/ping returns 200 within 2 s** — after the model has actually loaded. Watch logs to confirm.
@@ -320,6 +322,35 @@ Read `PRE_SUBMISSION_CHECKLIST.md` back to the user, item by item. Confirm each.
 
 For "also list" users, the skill helps with exactly two things: they already packaged `model.tar` in Phase 7, and here you help them run `CreateModelPackage` with a validation job. Everything else in the listing workflow — FDP enrollment, IAM roles, pricing, EULA, regions, the customer-facing notebook, publishing — the user handles manually via their AWS account team and the Marketplace Management Portal. Do not walk them through those steps.
 
+### Step 0 — Separate serving compatibility from Marketplace validation
+
+Read `reference/validation-instances.md` before choosing instance types. Keep these three decisions separate:
+
+1. `SupportedRealtimeInferenceInstanceTypes` is the customer-facing hosting contract. List only instance types on which the seller tested the image and model artifact for Real-Time inference.
+2. `SupportedTransformInstanceTypes` is the customer-facing Batch Transform contract. List only tested Batch Transform instance types. Do not copy the Real-Time list automatically.
+3. `ValidationSpecification.ValidationProfiles[0].TransformJobDefinition.TransformResources.InstanceType` is the concrete Batch Transform resource SageMaker uses to validate the model package. It must be supported by Batch Transform in the chosen region and compatible with the container and model.
+
+The validation instance may differ from the eventual Real-Time inference instance. That is valid only when the same image and model artifact can load and process representative input on both. Validation on an older GPU does not prove performance, precision, or GPU-specific behaviour on the serving family, so preserve separate test evidence for each contract.
+
+Use the current SageMaker GPU driver and instance-family table rather than a hard-coded family. If the model depends on an accelerator feature that no Batch Transform family supports, stop and report an **unsupported validation path**. A quota increase or capacity retry cannot fix that service-support gap.
+
+Classify failures before suggesting a remedy:
+
+- **Unsupported**: the family is absent from the current Batch Transform support table, or its GPU architecture cannot run the model. Choose a genuinely compatible fallback or stop.
+- **Quota**: the family is supported, but the account's regional Batch Transform quota is too low. Request the relevant quota increase.
+- **Capacity**: the family is supported and quota is sufficient, but the job cannot obtain capacity. Try another supported family or region only after confirming the model and listing plan allow it.
+
+Get the seller to confirm this short plan before building the API call:
+
+```
+Serving contract:    <tested Real-Time instance types>
+Batch contract:      <tested Batch Transform instance types>
+Validation resource: <one Batch-supported instance type>
+Driver / AMI:        <default, or the documented TransformAmiVersion>
+Region:              <CreateModelPackage region>
+Evidence:            <where each configuration was tested>
+```
+
 ### Step 1 — Prep sample validation input in S3
 
 `CreateModelPackage` with `CertifyForMarketplace=True` triggers a SageMaker validation transform job that runs the container against sample input. If validation fails, the listing request fails. Before calling the API, the user must:
@@ -334,10 +365,12 @@ Walk through the API structure with the user. See `reference/marketplace-listing
 
 - `InferenceSpecification.Containers[0].Image` → the ECR image URI pushed in Phase 9.
 - `InferenceSpecification.Containers[0].ModelDataUrl` → `s3://…/model.tar` from Phase 7.
-- `SupportedRealtimeInferenceInstanceTypes` / `SupportedTransformInstanceTypes` → the instance families tested during Phase 8. Match what the container actually runs on.
+- `SupportedRealtimeInferenceInstanceTypes` → tested customer-facing Real-Time hosting choices.
+- `SupportedTransformInstanceTypes` → tested customer-facing Batch Transform choices. Do not mirror the Real-Time list unless the seller tested both.
 - `SupportedContentTypes` / `SupportedResponseMIMETypes` → what `/invocations` accepts and returns. Must match reality.
 - `ValidationSpecification.ValidationRole` → an IAM role with permission to run the transform job (typically the user's existing SageMaker execution role).
-- `ValidationSpecification.ValidationProfiles[0].TransformJobDefinition` → points at the S3 input from Step 1 and the S3 output prefix.
+- `ValidationSpecification.ValidationProfiles[0].TransformJobDefinition` → points at the S3 input from Step 1, the S3 output prefix, and the separately selected Batch Transform validation resource.
+- `TransformResources.TransformAmiVersion` → optional, and only when the current SageMaker GPU driver table documents an AMI override compatible with the selected Batch Transform family and container CUDA requirement. SageMaker does not apply an override automatically.
 - `CertifyForMarketplace=True` → triggers the Marketplace review workflow. Without it, you get a private ModelPackage instead.
 
 What SageMaker validates: container starts, `/ping` returns 200 within 8 minutes, `/invocations` processes the sample input, valid output is produced, no security vulnerabilities. This is a **contract check**, not an accuracy evaluation.
@@ -407,6 +440,7 @@ Read these when you need to quote a specific constraint:
 - `reference/billing.md` — hourly vs per-inference, the fixed `inference.count` dimension and unit scaling, $0.001 price granularity, freeze rule
 - `reference/logging.md` — CloudWatch log groups, structured JSON logging, key events to log, multi-process pitfalls
 - `reference/marketplace-listing.md` — CreateModelPackage API skeleton + validation job (Phase 11 only)
+- `reference/validation-instances.md` — separates the Real-Time, Batch Transform, and Marketplace validation instance decisions; includes unsupported/quota/capacity triage (Phase 11 only)
 - `reference/observability.md` — CloudWatch metrics catalog (invocation/instance/detailed-observability) + EMF business-metric emission (Phase 12 only)
 - `reference/iam-temporary-delegation.md` — buyer-approved temporary support access for a live listing (Phase 12 only)
 - `reference/pipecat-integration.md` — Pipecat voice-agent orchestration architecture, control-message-vocabulary design guidance, and both ecosystem contribution paths (Phase 5 pointer + Phase 13 only)
