@@ -23,6 +23,7 @@ You describe your model; your agent guides you phase by phase — inventorying a
 - **Opt-in modules** for bidirectional WebSocket streaming and per-inference metering, scaffolded only if you need them.
 - **A local validation gate** (`test/test_local.sh`) you run before you ever push to ECR.
 - **Optional listing hand-off** that takes you through `CreateModelPackage` and the validation job if you want to publish.
+- **Separate serving and certification hardware checks** so a Real-Time GPU choice is not assumed to work for Marketplace's Batch Transform validation job.
 
 ## Requirements
 
@@ -118,6 +119,7 @@ sagemaker-marketplace-onboarding/        ← the installable skill
     ├── billing.md                       ← hourly vs. per-inference metering
     ├── logging.md                       ← CloudWatch logging patterns
     ├── marketplace-listing.md           ← CreateModelPackage skeleton for the also-list path
+    ├── validation-instances.md           ← Real-Time, Batch Transform, and validation-resource selection
     ├── observability.md                 ← CloudWatch metrics catalog + EMF business-metric emission (Phase 12)
     ├── iam-temporary-delegation.md      ← buyer-approved temporary support access for a live listing (Phase 12)
     └── pipecat-integration.md           ← Pipecat voice-agent orchestration hand-off (Phase 13)

@@ -65,3 +65,12 @@ Copy this file into the project as `PRE_SUBMISSION_CHECKLIST.md`. Walk through e
 - [ ] Code does **not** branch on invocation mode. The same `/invocations` handler works for Real-Time, Streaming response, and Batch Transform without needing to know which one is calling.
 - [ ] Code does **not** depend on any HTTP header outside the five SageMaker forwards (`Content-Type`, `Accept`, `X-Amzn-SageMaker-Custom-Attributes`, `X-Amzn-SageMaker-Inference-Id`, `X-Amzn-SageMaker-Session-Id`).
 - [ ] Container only writes to `/tmp` — never to `/opt/ml/model/` or arbitrary paths.
+
+## Marketplace model-package validation (only if listing)
+
+- [ ] `SupportedRealtimeInferenceInstanceTypes` contains only Real-Time configurations tested with the submitted image and model artifact.
+- [ ] `SupportedTransformInstanceTypes` contains only Batch Transform configurations tested with the submitted image and model artifact; it was not copied blindly from the Real-Time list.
+- [ ] The Marketplace validation resource is supported in the current **Batch** instance-family table for the submission region and meets the model's memory and accelerator requirements.
+- [ ] Any `TransformAmiVersion` is documented for the selected Batch family and compatible with the container's CUDA requirement.
+- [ ] Serving tests and Batch validation evidence are recorded separately. Passing the Batch validation job is not presented as proof of serving performance or accelerator-specific behaviour.
+- [ ] Any failure is classified as unsupported hardware, quota, capacity, or container compatibility before a remedy is proposed.

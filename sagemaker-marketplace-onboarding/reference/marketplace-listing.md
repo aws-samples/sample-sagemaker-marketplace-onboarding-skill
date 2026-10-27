@@ -4,7 +4,9 @@ The skill's marketplace scope is deliberately narrow: help the user run `CreateM
 
 ## What the validation job does
 
-`CreateModelPackage` with `CertifyForMarketplace=True` triggers a SageMaker Batch Transform job that runs the container against sample input the user provides in S3. It verifies: container starts, `/ping` returns 200 within 8 minutes, `/invocations` processes the sample and produces valid output, no security vulnerabilities in the image. This is a contract check, not an accuracy evaluation.
+`CreateModelPackage` with `CertifyForMarketplace=True` triggers a SageMaker Batch Transform job that runs the container against sample input the user provides in S3. It verifies: container starts, `/ping` returns 200 within 8 minutes, `/invocations` processes the sample and produces valid output, no security vulnerabilities in the image. This is a contract check on the selected Batch Transform validation resource, not an accuracy, performance, or eventual Real-Time serving evaluation.
+
+Read `validation-instances.md` before filling the instance fields. The supported Real-Time list, supported Batch Transform list, and concrete validation resource are separate decisions.
 
 ## Prerequisites (user's responsibility)
 
@@ -24,8 +26,8 @@ sm.create_model_package(
             "Image": "<account>.dkr.ecr.<region>.amazonaws.com/<model>:v1",
             "ModelDataUrl": "s3://<seller-bucket>/<model>/model.tar",
         }],
-        "SupportedRealtimeInferenceInstanceTypes": ["ml.g5.2xlarge"],
-        "SupportedTransformInstanceTypes":         ["ml.g5.2xlarge"],
+        "SupportedRealtimeInferenceInstanceTypes": ["<tested-serving-instance>"],
+        "SupportedTransformInstanceTypes":         ["<tested-batch-instance>"],
         "SupportedContentTypes":     ["application/json"],
         "SupportedResponseMIMETypes":["application/json"],
     },
@@ -42,7 +44,13 @@ sm.create_model_package(
                     "ContentType": "application/json",
                 },
                 "TransformOutput": {"S3OutputPath": "s3://<bucket>/validation-output/"},
-                "TransformResources": {"InstanceType": "ml.g5.xlarge", "InstanceCount": 1},
+                "TransformResources": {
+                    "InstanceType": "<batch-supported-validation-instance>",
+                    "InstanceCount": 1,
+                    # Optional. Set only to a value documented for this Batch
+                    # family in the current SageMaker GPU driver table.
+                    # "TransformAmiVersion": "<documented-batch-ami-version>",
+                },
             },
         }],
     },
@@ -54,7 +62,10 @@ sm.create_model_package(
 
 - `Image` — the ECR URI from Phase 9.
 - `ModelDataUrl` — the `model.tar` S3 path from Phase 7.
-- `SupportedRealtimeInferenceInstanceTypes` / `SupportedTransformInstanceTypes` — the instance families the user tested during Phase 8. Do not list families that were not tested.
+- `SupportedRealtimeInferenceInstanceTypes` — the tested instance types a buyer may use for Real-Time endpoints.
+- `SupportedTransformInstanceTypes` — the tested instance types a buyer may use for Batch Transform. Do not copy the Real-Time list automatically.
+- `ValidationSpecification...TransformResources.InstanceType` — the Batch-supported instance used for the Marketplace validation job. It can differ from the eventual serving family only when the exact image and model artifact run correctly on both.
+- `TransformResources.TransformAmiVersion` — optional. Set it only when the current SageMaker GPU driver table documents a compatible Batch AMI override for the selected instance. An override does not make an unsupported family available.
 - `SupportedContentTypes` / `SupportedResponseMIMETypes` — must match what `/invocations` actually accepts and returns.
 - `ValidationSpecification.TransformInput.ContentType` — must match one of the `SupportedContentTypes` above and must match the format of the sample files.
 - `CertifyForMarketplace=True` — without this, you get a private ModelPackage instead of triggering the Marketplace review workflow.

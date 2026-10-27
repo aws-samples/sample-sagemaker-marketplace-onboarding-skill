@@ -1,0 +1,5 @@
+# Runtime and generated Python files must not ship with the skill.
+memory/
+logs/
+__pycache__/
+*.pyc

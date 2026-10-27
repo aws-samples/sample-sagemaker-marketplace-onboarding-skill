@@ -44,6 +44,13 @@ Walk through every item below before pushing to ECR and creating the model packa
 - [ ] No dependency on custom HTTP headers.
 - [ ] Only `/tmp` is written to at runtime.
 
+## Marketplace model-package validation (only if listing)
+
+- [ ] Real-Time and Batch Transform supported-instance lists contain only configurations tested with the submitted image and model artifact.
+- [ ] The Marketplace validation resource is supported by Batch Transform in the submission region and meets the model's hardware requirements.
+- [ ] Any `TransformAmiVersion` is documented for the selected Batch family and compatible with the container's CUDA requirement.
+- [ ] Batch validation evidence is separate from Real-Time serving evidence.
+
 ## Bidirectional WebSocket (only if implemented)
 
 - [ ] `/invocations-bidirectional-stream` responds to WebSocket upgrade on port 8080.
