@@ -96,13 +96,22 @@ Container reads and applies. No shared state between customers.
 
 ## Per-inference billing on WebSocket (companion metadata streaming)
 
-GA capability (see AWS ML blog ["Introducing usage-based pricing for Amazon SageMaker bidirectional
-streaming"](https://aws.amazon.com/blogs/machine-learning/introducing-usage-based-pricing-for-amazon-sagemaker-bidirectional-streaming/)).
 This is what makes per-inference billing possible on a long-lived
 connection where total usage is not known until the stream ends — SageMaker's header-based metering
 (`X-Amzn-Inference-Metering` on a normal `/invocations` response) only works because a request-response
 call has a bounded end. A bidi session can run 30 seconds or 30 minutes, so metering has to be reported
 incrementally on a side channel instead.
+
+The container sends JSON metering frames on the side channel; SageMaker validates each frame, drops
+malformed ones, de-duplicates by `ClientToken`, and reports the units to AWS Marketplace. It is the
+same fixed **`inference.count`** dimension and per-unit listing price used by the header path — only
+now reported mid-stream. There are no custom dimensions (no `audio_seconds`): to bill per second of
+audio, report seconds of audio (scaled to your unit size) as `ConsumedUnits` of `inference.count`. See
+`reference/billing.md` for unit scaling and the $0.001 price-granularity constraint.
+
+The bidirectional streaming feature itself is introduced in the AWS ML blog post
+["Introducing bidirectional streaming for real-time inference on Amazon SageMaker
+AI"](https://aws.amazon.com/blogs/machine-learning/introducing-bidirectional-streaming-for-real-time-inference-on-amazon-sagemaker-ai/).
 
 Metering does **not** go on the main data stream. It goes on a **companion metadata WebSocket** at
 `/invocations-bidirectional-stream-metadata` — a second, independent WebSocket connection SageMaker
@@ -131,19 +140,25 @@ records into a single frame; binary frames are not supported for metering):
 {
   "Metering": {
     "Dimension": "inference.count",
-    "ConsumedUnits": 150,
-    "ClientToken": "a3f2b1c0-unique-uuid"
+    "ConsumedUnits": 720,
+    "ClientToken": "<uuid>"
   }
 }
 ```
 
+Here the product is priced per second of audio, and the record reports 12 minutes of metered audio
+= 720 seconds, so `"ConsumedUnits": 720`. Each record reports the units consumed **since the previous
+record** (not a running total); billing sums all records in the session. The provider defines what
+counts as metered usage (e.g. audio processed, not connection time).
+
 | Field | Required | Type | Constraint |
 |---|---|---|---|
-| `Metering.Dimension` | Yes | string | max 128 characters |
-| `Metering.ConsumedUnits` | Yes | number | > 0 |
+| `Metering.Dimension` | Yes | string | always `inference.count` |
+| `Metering.ConsumedUnits` | Yes | number | >= 0 (0 is allowed, e.g. an interval with no billable usage) |
 | `Metering.ClientToken` | No | string | max 64 characters — idempotency key; a duplicate `ClientToken` on the same connection is recorded only once |
 
-`Dimension` must match the value configured on the Marketplace listing.
+`Dimension` is always `inference.count` — ML listings do not support custom dimension names.
+`ConsumedUnits` is in the unit size you priced on the listing (see `reference/billing.md`).
 
 ### Constraints and limits
 
@@ -154,8 +169,9 @@ records into a single frame; binary frames are not supported for metering):
 
 ### Send incrementally, not just at session end
 
-Recommended: emit metering records incrementally as usage accrues (e.g. per N seconds of audio
-processed), not only once at session close. **If the session drops mid-stream, billing is only
+Recommended: emit metering records incrementally as usage accrues (at most 1 message per second,
+each with the units consumed since the previous record — `metering.py`'s `UnitAccumulator` is one way
+to carry fractional remainders between records), not only once at session close. **If the session drops mid-stream, billing is only
 captured for usage reported up to that point** — a single end-of-session record loses everything if
 the connection dies first.
 

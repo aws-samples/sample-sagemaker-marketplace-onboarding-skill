@@ -123,6 +123,8 @@ sagemaker-marketplace-onboarding/        ← the installable skill
     └── pipecat-integration.md           ← Pipecat voice-agent orchestration hand-off (Phase 13)
 ```
 
+`tests/` — repo smoke tests for the templates and docs (not part of the installable skill).
+
 `.claude-plugin/` — `plugin.json` + `marketplace.json`, so Claude Code's native `/plugin marketplace add` and the `npx skills` CLI both find the skill directly, without a directory scan.
 
 `sagemaker-marketplace-onboarding.skill` — a prebuilt zip of the skill folder, attached to each [release](../../releases).
@@ -143,7 +145,7 @@ By design, the skill:
 
 Contributions are welcome. Found a bug, an outdated constraint, or a gap? [Open an issue](../../issues) or send a [pull request](../../pulls). See [CONTRIBUTING.md](CONTRIBUTING.md) for details. The skill is entirely documentation and templates, so most changes are edits to `SKILL.md`, `reference/*.md`, or `templates/`.
 
-Please test locally before opening a PR: install the skill into your own agent (Claude Code, Amazon Quick, Kiro, or Codex), run the walkthrough end to end, and for template changes do a full scaffold plus `bash test/test_local.sh <image> <weights>`. There is no CI — manual testing is the gate.
+Please test locally before opening a PR: install the skill into your own agent (Claude Code, Amazon Quick, Kiro, or Codex), run the walkthrough end to end, and for template changes do a full scaffold plus `bash test/test_local.sh <image> <weights>`. There is no CI — manual testing is the gate. Also run the stdlib-only repo smoke tests (template syntax, metering helpers, `inference.count` consistency) from the repo root: `python3 -B -m unittest discover -s tests`.
 
 A few design principles are load-bearing and shouldn't be changed casually: `/ping` must exercise inference, `ENTRYPOINT` must be exec-form, no weights baked into the image and no runtime network calls, container code stays mode-agnostic, and every walkthrough question uses structured prompts rather than free text.
 
